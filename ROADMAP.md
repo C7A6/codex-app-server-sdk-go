@@ -44,8 +44,8 @@
 ### Model Discovery
 
 - [x] `ListModels`: Why clients need model metadata before rendering selectors or picking defaults. How call `model/list`, support pagination flags, and decode reasoning and modality metadata.
-- [ ] `ListExperimentalFeatures`: Why integrations may surface or gate preview functionality. How call `experimentalFeature/list` and map lifecycle metadata into typed results.
-- [ ] `ListCollaborationModes`: Why callers may need to enumerate supported collaboration presets. How call `collaborationMode/list` and decode the non-paginated response.
+- [x] `ListExperimentalFeatures`: Why integrations may surface or gate preview functionality. How call `experimentalFeature/list` and map lifecycle metadata into typed results.
+- [x] `ListCollaborationModes`: Why callers may need to enumerate supported collaboration presets. How call `collaborationMode/list` and decode the non-paginated response.
 
 ### Thread Lifecycle
 
@@ -105,13 +105,13 @@
 
 ### Auth And Account
 
-- [ ] `ReadAccount`: Why integrations need to inspect the current authentication state. How call `account/read` with `refreshToken` support and decode account and provider metadata.
+- [x] `ReadAccount`: Why integrations need to inspect the current authentication state. How call `account/read` with `refreshToken` support and decode account and provider metadata.
 - [-] `StartAPIKeyLogin`: Out of scope. Direct login flows are intentionally excluded from this SDK for now.
 - [-] `StartChatGPTLogin`: Out of scope. Browser-driven auth orchestration is intentionally excluded from this SDK for now.
 - [-] `StartChatGPTTokenLogin`: Out of scope. Host-managed ChatGPT token login is intentionally excluded from this SDK for now.
 - [-] `CancelLogin`: Out of scope. Login lifecycle cancellation is intentionally excluded because login flows are not being implemented.
 - [-] `Logout`: Out of scope. Explicit sign-out is intentionally excluded while interactive login lifecycle support remains out of scope.
-- [ ] `ReadRateLimits`: Why ChatGPT-backed clients need current quota information. How call `account/rateLimits/read` and decode single-bucket and multi-bucket rate-limit payloads.
+- [x] `ReadRateLimits`: Why ChatGPT-backed clients need current quota information. How call `account/rateLimits/read` and decode single-bucket and multi-bucket rate-limit payloads.
 - [-] `HandleChatGPTTokenRefresh`: Out of scope. Server-request token refresh handling is intentionally excluded because external-token login support is not being implemented.
 
 Reason: Interactive authentication, logout orchestration, and host-managed ChatGPT token refresh are intentionally out of scope for this SDK at the current stage. The SDK will keep read-only account inspection endpoints, but it will not own end-user login state transitions.
