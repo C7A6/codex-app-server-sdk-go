@@ -72,7 +72,7 @@
 ### Command Execution
 
 - [x] `ExecCommand`: Why clients may need sandboxed command execution outside thread flows. How call `command/exec` with command, cwd, and sandbox policy and return the execution descriptor.
-- [ ] `WriteCommandStdin`: Why long-running commands may require streamed stdin input. How call `command/exec/write` with bytes or close signals for an existing execution session.
+- [x] `WriteCommandStdin`: Why long-running commands may require streamed stdin input. How call `command/exec/write` with bytes or close signals for an existing execution session.
 - [ ] `ResizeCommandPTY`: Why PTY-backed commands need terminal resize support. How call `command/exec/resize` with rows and columns for the target execution session.
 - [ ] `TerminateCommand`: Why callers need an explicit way to stop a running command. How call `command/exec/terminate` and treat `{}` as success.
 
