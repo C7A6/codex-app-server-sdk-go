@@ -2,6 +2,7 @@ package appserver
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -15,6 +16,7 @@ const defaultCommand = "codex"
 
 var (
 	ErrClientClosed      = errors.New("appserver: client is closed")
+	errNilHandler        = errors.New("appserver: notification handler is nil")
 	errMissingClientInfo = errors.New("appserver: client info is required")
 )
 
@@ -102,11 +104,27 @@ type StartOptions struct {
 	RestartOnFailure bool
 }
 
+type Notification struct {
+	Method string
+	Params json.RawMessage
+}
+
+func (n Notification) DecodeParams(v any) error {
+	if len(n.Params) == 0 {
+		return nil
+	}
+	return json.Unmarshal(n.Params, v)
+}
+
+type NotificationHandler func(context.Context, Notification)
+
 type Client struct {
-	mu      sync.Mutex
-	opts    StartOptions
-	session *session
-	closed  bool
+	mu                   sync.Mutex
+	opts                 StartOptions
+	session              *session
+	closed               bool
+	nextHandlerID        uint64
+	notificationHandlers map[string]map[uint64]NotificationHandler
 }
 
 func StartStdio(ctx context.Context, opts StartOptions) (*Client, *InitializeResult, error) {
@@ -115,16 +133,51 @@ func StartStdio(ctx context.Context, opts StartOptions) (*Client, *InitializeRes
 	}
 
 	client := &Client{
-		opts: opts,
+		opts:                 opts,
+		notificationHandlers: make(map[string]map[uint64]NotificationHandler),
 	}
 
-	sess, result, err := startSession(ctx, opts)
+	sess, result, err := startSession(ctx, client, opts)
 	if err != nil {
 		return nil, nil, err
 	}
 	client.session = sess
 
 	return client, result, nil
+}
+
+func (c *Client) RegisterNotificationHandler(method string, handler NotificationHandler) (func(), error) {
+	if handler == nil {
+		return nil, errNilHandler
+	}
+
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	if c.closed {
+		return nil, ErrClientClosed
+	}
+
+	c.nextHandlerID++
+	handlerID := c.nextHandlerID
+	if c.notificationHandlers[method] == nil {
+		c.notificationHandlers[method] = make(map[uint64]NotificationHandler)
+	}
+	c.notificationHandlers[method][handlerID] = handler
+
+	return func() {
+		c.mu.Lock()
+		defer c.mu.Unlock()
+
+		handlers := c.notificationHandlers[method]
+		if handlers == nil {
+			return
+		}
+		delete(handlers, handlerID)
+		if len(handlers) == 0 {
+			delete(c.notificationHandlers, method)
+		}
+	}, nil
 }
 
 func (c *Client) Call(ctx context.Context, method string, params, result any) error {
@@ -224,7 +277,7 @@ func (c *Client) activeSession(ctx context.Context) (*session, error) {
 		return nil, c.session.processExitError()
 	}
 
-	sess, _, err := startSession(ctx, c.opts)
+	sess, _, err := startSession(ctx, c, c.opts)
 	if err != nil {
 		return nil, err
 	}
@@ -241,7 +294,7 @@ func (c *Client) invalidateSession(target *session) {
 	}
 }
 
-func startSession(ctx context.Context, opts StartOptions) (*session, *InitializeResult, error) {
+func startSession(ctx context.Context, client *Client, opts StartOptions) (*session, *InitializeResult, error) {
 	command := opts.Command
 	if command == "" {
 		command = defaultCommand
@@ -277,7 +330,7 @@ func startSession(ctx context.Context, opts StartOptions) (*session, *Initialize
 		stdin:  stdin,
 		stdout: stdout,
 	}
-	conn := jsonrpc2.NewConn(ctx, jsonrpc2.NewPlainObjectStream(stdio), &noopHandler{})
+	conn := jsonrpc2.NewConn(ctx, jsonrpc2.NewPlainObjectStream(stdio), &clientHandler{client: client})
 
 	sess := newSession(cmd, conn, stdio)
 
@@ -405,6 +458,54 @@ func (s *processStdio) Close() error {
 	return s.closeErr
 }
 
-type noopHandler struct{}
+type clientHandler struct {
+	client *Client
+}
 
-func (h *noopHandler) Handle(context.Context, *jsonrpc2.Conn, *jsonrpc2.Request) {}
+func (h *clientHandler) Handle(ctx context.Context, conn *jsonrpc2.Conn, req *jsonrpc2.Request) {
+	if req.Notif {
+		h.client.dispatchNotification(ctx, req)
+		return
+	}
+
+	_ = conn.ReplyWithError(ctx, req.ID, &jsonrpc2.Error{
+		Code:    jsonrpc2.CodeMethodNotFound,
+		Message: "appserver: server request method is not supported yet",
+	})
+}
+
+func (c *Client) dispatchNotification(ctx context.Context, req *jsonrpc2.Request) {
+	notification := Notification{
+		Method: req.Method,
+	}
+	if req.Params != nil {
+		notification.Params = append(json.RawMessage(nil), (*req.Params)...)
+	}
+
+	handlers := c.handlersForMethod(req.Method)
+	if len(handlers) == 0 {
+		return
+	}
+
+	go func() {
+		for _, handler := range handlers {
+			handler(ctx, notification)
+		}
+	}()
+}
+
+func (c *Client) handlersForMethod(method string) []NotificationHandler {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	registered := c.notificationHandlers[method]
+	if len(registered) == 0 {
+		return nil
+	}
+
+	handlers := make([]NotificationHandler, 0, len(registered))
+	for _, handler := range registered {
+		handlers = append(handlers, handler)
+	}
+	return handlers
+}
