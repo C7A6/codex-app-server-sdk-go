@@ -10,6 +10,19 @@
 - [x] Handle process-level failures by returning an error or restarting automatically when the `codex` binary is missing or the app-server exits unexpectedly.
 - [x] Implement `initialize`, `account/read`, and `account/rateLimits/read` support with unit tests that verify successful responses.
 
+### Recommended Implementation Priority
+
+1. `RegisterNotificationHandler` + `DefineEventTypes`: Why app-server is fundamentally notification-driven, and thread, turn, auth, review, and MCP flows all depend on typed event intake. How implement a method-based notification dispatcher first, then map each server notification schema in `api/codex-app-server/` to typed Go payloads.
+2. `DefineCoreTypes`: Why request and response payloads must stabilize before higher-level APIs multiply. How use the JSON Schema files under `api/codex-app-server/v1/` and `api/codex-app-server/v2/` to define reusable Go structs for models, threads, turns, items, commands, and config data.
+3. `ListModels`: Why model discovery is low-risk, high-signal, and a good proving ground for schema-driven pagination and nested payload decoding. How implement it directly from `ModelListParams.json` and `ModelListResponse.json`, then use the same patterns for later list APIs.
+4. `StartThread` + `StartTurn`: Why these two methods create the minimum useful conversational workflow for SDK consumers. How implement typed request and response wrappers from the thread and turn start schemas and rely on the notification handler for streamed progress.
+5. `HandleTurnEvents` + `HandleItemEvents` + `HandleItemDeltas`: Why turn execution is incomplete without streamed server updates for progress, output, and final state. How wire typed notification handlers for `turn/*`, `item/*`, and delta notifications after the dispatcher exists.
+6. `ResumeThread` + `ReadThread` + `ListThreads`: Why practical clients need to reopen, inspect, and page through thread history after basic conversation start works. How reuse the shared thread types and pagination conventions established by earlier work.
+7. `ExecCommand` family: Why command execution is a major app-server capability but depends less on conversational state once core event plumbing is in place. How implement command request methods and stream output through the same item and command delta handling path.
+8. Auth login and logout methods: Why read-only auth status is already covered, but login flows need both request wrappers and asynchronous notification handling to feel complete. How add login, cancel, logout, and token refresh support after account notifications are typed.
+9. Filesystem and config APIs: Why they are valuable but less foundational than conversation, event, and auth primitives. How implement them as typed request-response wrappers once the shared type system is established.
+10. Plugins, skills, apps, MCP, feedback, and Windows-specific APIs: Why these are important extensions but should follow after the core transport, conversation, and state-management layers are reliable. How implement them incrementally on top of the same schema-driven request and notification foundation.
+
 ### Core Transport And Session
 
 - [ ] `NewClient`: Why expose a stable SDK entry point for stdio app-server sessions. How build and validate client configuration, then prepare the JSON-RPC connection wrapper.
