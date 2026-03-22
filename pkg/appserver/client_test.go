@@ -126,61 +126,7 @@ func TestResumeThreadWithRealCodex(t *testing.T) {
 	requireCodex(t)
 
 	client, _ := startTestClient(t, false)
-
-	ephemeral := false
-	started, err := client.StartThread(context.Background(), ThreadStartParams{
-		Ephemeral: &ephemeral,
-	})
-	if err != nil {
-		t.Fatalf("StartThread returned error: %v", err)
-	}
-
-	turnCompleted := make(chan *TurnCompletedEvent, 1)
-	unregister, err := client.RegisterNotificationHandler(MethodTurnCompleted, func(ctx context.Context, notification Notification) {
-		event, err := notification.DecodeEvent()
-		if err != nil {
-			t.Errorf("DecodeEvent returned error: %v", err)
-			return
-		}
-
-		completed, ok := event.(*TurnCompletedEvent)
-		if !ok || completed.ThreadID != started.Thread.ID {
-			return
-		}
-
-		select {
-		case turnCompleted <- completed:
-		default:
-		}
-	})
-	if err != nil {
-		t.Fatalf("RegisterNotificationHandler returned error: %v", err)
-	}
-	defer unregister()
-
-	ctx, cancel := context.WithTimeout(context.Background(), 90*time.Second)
-	defer cancel()
-
-	var turnStartResult struct {
-		Turn Turn `json:"turn"`
-	}
-	if err := client.Call(ctx, "turn/start", map[string]any{
-		"threadId": started.Thread.ID,
-		"input": []map[string]any{
-			{
-				"type": "text",
-				"text": "hello",
-			},
-		},
-	}, &turnStartResult); err != nil {
-		t.Fatalf("turn/start returned error: %v", err)
-	}
-
-	select {
-	case <-turnCompleted:
-	case <-ctx.Done():
-		t.Fatalf("timed out waiting for turn completion: %v", ctx.Err())
-	}
+	started := createPersistedThread(t, client)
 
 	_ = client.Close()
 
@@ -200,6 +146,33 @@ func TestResumeThreadWithRealCodex(t *testing.T) {
 	}
 	if resumed.Model == "" || resumed.ModelProvider == "" || resumed.Cwd == "" {
 		t.Fatalf("expected resolved resume defaults: %#v", resumed)
+	}
+}
+
+func TestForkThreadWithRealCodex(t *testing.T) {
+	requireCodex(t)
+
+	client, _ := startTestClient(t, false)
+	started := createPersistedThread(t, client)
+	_ = client.Close()
+
+	forkClient, _ := startTestClient(t, false)
+	defer func() {
+		_ = forkClient.Close()
+	}()
+
+	forked, err := forkClient.ForkThread(context.Background(), ThreadForkParams{
+		ThreadID:  started.Thread.ID,
+		Ephemeral: false,
+	})
+	if err != nil {
+		t.Fatalf("ForkThread returned error: %v", err)
+	}
+	if forked == nil || forked.Thread.ID == "" {
+		t.Fatalf("expected forked thread response: %#v", forked)
+	}
+	if forked.Thread.ID == started.Thread.ID {
+		t.Fatalf("expected new thread ID, got original %q", forked.Thread.ID)
 	}
 }
 
@@ -413,6 +386,21 @@ func TestCoreTypeDecoding(t *testing.T) {
 	if threadResumeResult.Thread.ID != "thr_123" || threadResumeResult.ModelProvider != "openai" {
 		t.Fatalf("unexpected thread resume result: %#v", threadResumeResult)
 	}
+
+	var threadForkResult ThreadForkResult
+	if err := json.Unmarshal([]byte(`{
+		"approvalPolicy":"never",
+		"approvalsReviewer":"user",
+		"cwd":"/tmp",
+		"model":"gpt-5.4",
+		"modelProvider":"openai",
+		"thread":{"id":"thr_forked","status":{"type":"idle"}}
+	}`), &threadForkResult); err != nil {
+		t.Fatalf("unmarshal thread fork result: %v", err)
+	}
+	if threadForkResult.Thread.ID != "thr_forked" || threadForkResult.Model != "gpt-5.4" {
+		t.Fatalf("unexpected thread fork result: %#v", threadForkResult)
+	}
 }
 
 func TestRegisterNotificationHandlerCanDecodeTypedEvent(t *testing.T) {
@@ -488,6 +476,67 @@ func startTestClient(t *testing.T, restartOnFailure bool) (*Client, *InitializeR
 		t.Fatalf("StartStdio returned error: %v", err)
 	}
 	return client, result
+}
+
+func createPersistedThread(t *testing.T, client *Client) *ThreadStartResult {
+	t.Helper()
+
+	ephemeral := false
+	started, err := client.StartThread(context.Background(), ThreadStartParams{
+		Ephemeral: &ephemeral,
+	})
+	if err != nil {
+		t.Fatalf("StartThread returned error: %v", err)
+	}
+
+	turnCompleted := make(chan *TurnCompletedEvent, 1)
+	unregister, err := client.RegisterNotificationHandler(MethodTurnCompleted, func(ctx context.Context, notification Notification) {
+		event, err := notification.DecodeEvent()
+		if err != nil {
+			t.Errorf("DecodeEvent returned error: %v", err)
+			return
+		}
+
+		completed, ok := event.(*TurnCompletedEvent)
+		if !ok || completed.ThreadID != started.Thread.ID {
+			return
+		}
+
+		select {
+		case turnCompleted <- completed:
+		default:
+		}
+	})
+	if err != nil {
+		t.Fatalf("RegisterNotificationHandler returned error: %v", err)
+	}
+	defer unregister()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 90*time.Second)
+	defer cancel()
+
+	var turnStartResult struct {
+		Turn Turn `json:"turn"`
+	}
+	if err := client.Call(ctx, "turn/start", map[string]any{
+		"threadId": started.Thread.ID,
+		"input": []map[string]any{
+			{
+				"type": "text",
+				"text": "hello",
+			},
+		},
+	}, &turnStartResult); err != nil {
+		t.Fatalf("turn/start returned error: %v", err)
+	}
+
+	select {
+	case <-turnCompleted:
+	case <-ctx.Done():
+		t.Fatalf("timed out waiting for turn completion: %v", ctx.Err())
+	}
+
+	return started
 }
 
 func killActiveProcess(t *testing.T, client *Client) {
