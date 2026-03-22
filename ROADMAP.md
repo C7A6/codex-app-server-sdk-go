@@ -64,7 +64,7 @@
 
 ### Turn Lifecycle
 
-- [ ] `StartTurn`: Why a thread needs a primary execution entry point for user input. How call `turn/start` with input items and optional overrides for model, cwd, sandbox, and output schema.
+- [x] `StartTurn`: Why a thread needs a primary execution entry point for user input. How call `turn/start` with input items and optional overrides for model, cwd, sandbox, and output schema.
 - [ ] `SteerTurn`: Why an in-flight turn may need incremental user steering. How call `turn/steer` with additional input and decode the accepted `turnId`.
 - [ ] `InterruptTurn`: Why a caller must be able to cancel active generation. How call `turn/interrupt` and treat an empty success object as completion.
 - [ ] `StartReview`: Why the SDK should expose the documented review workflow. How call `review/start` and decode the initial review response while consuming review-mode events.
