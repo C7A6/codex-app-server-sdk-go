@@ -77,6 +77,65 @@ func TestReadAccountAndRateLimitsWithRealCodex(t *testing.T) {
 	}
 }
 
+func TestListExperimentalFeaturesWithRealCodex(t *testing.T) {
+	requireCodex(t)
+
+	client, _ := startExperimentalTestClient(t, false)
+	defer func() {
+		_ = client.Close()
+	}()
+
+	limit := uint32(10)
+	result, err := client.ListExperimentalFeatures(context.Background(), ExperimentalFeatureListParams{
+		Limit: &limit,
+	})
+	if err != nil {
+		t.Fatalf("ListExperimentalFeatures returned error: %v", err)
+	}
+	if result == nil || len(result.Data) == 0 {
+		t.Fatalf("expected experimental feature data: %#v", result)
+	}
+	for _, feature := range result.Data {
+		if feature.Name == "" {
+			t.Fatalf("expected feature name: %#v", feature)
+		}
+		switch feature.Stage {
+		case ExperimentalFeatureStageBeta, ExperimentalFeatureStageUnderDevelopment, ExperimentalFeatureStageStable, ExperimentalFeatureStageDeprecated, ExperimentalFeatureStageRemoved:
+		default:
+			t.Fatalf("unexpected feature stage: %#v", feature)
+		}
+	}
+}
+
+func TestListCollaborationModesWithRealCodex(t *testing.T) {
+	requireCodex(t)
+
+	client, _ := startExperimentalTestClient(t, false)
+	defer func() {
+		_ = client.Close()
+	}()
+
+	result, err := client.ListCollaborationModes(context.Background())
+	if err != nil {
+		t.Fatalf("ListCollaborationModes returned error: %v", err)
+	}
+	if result == nil || len(result.Data) == 0 {
+		t.Fatalf("expected collaboration mode data: %#v", result)
+	}
+	for _, mode := range result.Data {
+		if mode.Name == "" {
+			t.Fatalf("expected collaboration mode name: %#v", mode)
+		}
+		if mode.Mode != nil {
+			switch *mode.Mode {
+			case CollaborationModeKindPlan, CollaborationModeKindDefault:
+			default:
+				t.Fatalf("unexpected collaboration mode kind: %#v", mode)
+			}
+		}
+	}
+}
+
 func TestListModelsWithRealCodex(t *testing.T) {
 	requireCodex(t)
 
@@ -1684,6 +1743,38 @@ func TestCoreTypeDecoding(t *testing.T) {
 		t.Fatalf("unexpected fs read directory result: %#v", fsReadDirectoryResult)
 	}
 
+	var experimentalFeatureListResult ExperimentalFeatureListResult
+	if err := json.Unmarshal([]byte(`{
+		"data":[{
+			"name":"unified_exec",
+			"stage":"beta",
+			"displayName":"Unified exec",
+			"description":"Improved execution path",
+			"announcement":"Try it now",
+			"enabled":false,
+			"defaultEnabled":false
+		}],
+		"nextCursor":"cursor_2"
+	}`), &experimentalFeatureListResult); err != nil {
+		t.Fatalf("unmarshal experimental feature list result: %v", err)
+	}
+	if len(experimentalFeatureListResult.Data) != 1 || experimentalFeatureListResult.Data[0].Stage != ExperimentalFeatureStageBeta {
+		t.Fatalf("unexpected experimental feature list result: %#v", experimentalFeatureListResult)
+	}
+
+	var collaborationModeListResult CollaborationModeListResult
+	if err := json.Unmarshal([]byte(`{
+		"data":[
+			{"name":"Plan","mode":"plan","reasoning_effort":"medium"},
+			{"name":"Default","mode":"default","model":"gpt-5.4"}
+		]
+	}`), &collaborationModeListResult); err != nil {
+		t.Fatalf("unmarshal collaboration mode list result: %v", err)
+	}
+	if len(collaborationModeListResult.Data) != 2 || collaborationModeListResult.Data[0].Mode == nil || *collaborationModeListResult.Data[0].Mode != CollaborationModeKindPlan {
+		t.Fatalf("unexpected collaboration mode list result: %#v", collaborationModeListResult)
+	}
+
 	var modelListResult ModelListResult
 	if err := json.Unmarshal([]byte(`{
 		"data":[{
@@ -2100,6 +2191,26 @@ func startTestClient(t *testing.T, restartOnFailure bool) (*Client, *InitializeR
 			Name:    "sdk_test",
 			Title:   "SDK Test",
 			Version: "0.1.0",
+		},
+		RestartOnFailure: restartOnFailure,
+	})
+	if err != nil {
+		t.Fatalf("StartStdio returned error: %v", err)
+	}
+	return client, result
+}
+
+func startExperimentalTestClient(t *testing.T, restartOnFailure bool) (*Client, *InitializeResult) {
+	t.Helper()
+
+	client, result, err := StartStdio(context.Background(), StartOptions{
+		ClientInfo: ClientInfo{
+			Name:    "sdk_test",
+			Title:   "SDK Test",
+			Version: "0.1.0",
+		},
+		Capabilities: &Capabilities{
+			ExperimentalAPI: true,
 		},
 		RestartOnFailure: restartOnFailure,
 	})
