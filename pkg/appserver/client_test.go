@@ -122,6 +122,87 @@ func TestStartThreadWithRealCodex(t *testing.T) {
 	}
 }
 
+func TestResumeThreadWithRealCodex(t *testing.T) {
+	requireCodex(t)
+
+	client, _ := startTestClient(t, false)
+
+	ephemeral := false
+	started, err := client.StartThread(context.Background(), ThreadStartParams{
+		Ephemeral: &ephemeral,
+	})
+	if err != nil {
+		t.Fatalf("StartThread returned error: %v", err)
+	}
+
+	turnCompleted := make(chan *TurnCompletedEvent, 1)
+	unregister, err := client.RegisterNotificationHandler(MethodTurnCompleted, func(ctx context.Context, notification Notification) {
+		event, err := notification.DecodeEvent()
+		if err != nil {
+			t.Errorf("DecodeEvent returned error: %v", err)
+			return
+		}
+
+		completed, ok := event.(*TurnCompletedEvent)
+		if !ok || completed.ThreadID != started.Thread.ID {
+			return
+		}
+
+		select {
+		case turnCompleted <- completed:
+		default:
+		}
+	})
+	if err != nil {
+		t.Fatalf("RegisterNotificationHandler returned error: %v", err)
+	}
+	defer unregister()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 90*time.Second)
+	defer cancel()
+
+	var turnStartResult struct {
+		Turn Turn `json:"turn"`
+	}
+	if err := client.Call(ctx, "turn/start", map[string]any{
+		"threadId": started.Thread.ID,
+		"input": []map[string]any{
+			{
+				"type": "text",
+				"text": "hello",
+			},
+		},
+	}, &turnStartResult); err != nil {
+		t.Fatalf("turn/start returned error: %v", err)
+	}
+
+	select {
+	case <-turnCompleted:
+	case <-ctx.Done():
+		t.Fatalf("timed out waiting for turn completion: %v", ctx.Err())
+	}
+
+	_ = client.Close()
+
+	resumeClient, _ := startTestClient(t, false)
+	defer func() {
+		_ = resumeClient.Close()
+	}()
+
+	resumed, err := resumeClient.ResumeThread(context.Background(), ThreadResumeParams{
+		ThreadID: started.Thread.ID,
+	})
+	if err != nil {
+		t.Fatalf("ResumeThread returned error: %v", err)
+	}
+	if resumed == nil || resumed.Thread.ID != started.Thread.ID {
+		t.Fatalf("expected resumed thread id %q, got %#v", started.Thread.ID, resumed)
+	}
+	if resumed.Model == "" || resumed.ModelProvider == "" || resumed.Cwd == "" {
+		t.Fatalf("expected resolved resume defaults: %#v", resumed)
+	}
+}
+
 func TestProcessExitReturnsErrorWhenRestartDisabled(t *testing.T) {
 	requireCodex(t)
 
@@ -316,6 +397,21 @@ func TestCoreTypeDecoding(t *testing.T) {
 	}
 	if threadStartResult.Thread.ID != "thr_123" || threadStartResult.Model != "gpt-5.4" {
 		t.Fatalf("unexpected thread start result: %#v", threadStartResult)
+	}
+
+	var threadResumeResult ThreadResumeResult
+	if err := json.Unmarshal([]byte(`{
+		"approvalPolicy":"never",
+		"approvalsReviewer":"user",
+		"cwd":"/tmp",
+		"model":"gpt-5.4",
+		"modelProvider":"openai",
+		"thread":{"id":"thr_123","status":{"type":"idle"}}
+	}`), &threadResumeResult); err != nil {
+		t.Fatalf("unmarshal thread resume result: %v", err)
+	}
+	if threadResumeResult.Thread.ID != "thr_123" || threadResumeResult.ModelProvider != "openai" {
+		t.Fatalf("unexpected thread resume result: %#v", threadResumeResult)
 	}
 }
 
