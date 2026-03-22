@@ -235,6 +235,39 @@ func TestListThreadsWithRealCodex(t *testing.T) {
 	t.Fatalf("expected listed threads to include %q, got %#v", started.Thread.ID, threads.Data)
 }
 
+func TestListLoadedThreadsWithRealCodex(t *testing.T) {
+	requireCodex(t)
+
+	client, _ := startTestClient(t, false)
+	defer func() {
+		_ = client.Close()
+	}()
+
+	started, err := client.StartThread(context.Background(), ThreadStartParams{})
+	if err != nil {
+		t.Fatalf("StartThread returned error: %v", err)
+	}
+
+	limit := uint32(50)
+	loadedThreads, err := client.ListLoadedThreads(context.Background(), ThreadLoadedListParams{
+		Limit: &limit,
+	})
+	if err != nil {
+		t.Fatalf("ListLoadedThreads returned error: %v", err)
+	}
+	if loadedThreads == nil || len(loadedThreads.Data) == 0 {
+		t.Fatalf("expected at least one loaded thread: %#v", loadedThreads)
+	}
+
+	for _, threadID := range loadedThreads.Data {
+		if threadID == started.Thread.ID {
+			return
+		}
+	}
+
+	t.Fatalf("expected loaded threads to include %q, got %#v", started.Thread.ID, loadedThreads.Data)
+}
+
 func TestProcessExitReturnsErrorWhenRestartDisabled(t *testing.T) {
 	requireCodex(t)
 
@@ -483,6 +516,17 @@ func TestCoreTypeDecoding(t *testing.T) {
 	}
 	if len(threadListResult.Data) != 2 || threadListResult.Data[1].ID != "thr_2" || threadListResult.NextCursor == nil || *threadListResult.NextCursor != "cursor_2" {
 		t.Fatalf("unexpected thread list result: %#v", threadListResult)
+	}
+
+	var threadLoadedListResult ThreadLoadedListResult
+	if err := json.Unmarshal([]byte(`{
+		"data":["thr_1","thr_2"],
+		"nextCursor":"cursor_3"
+	}`), &threadLoadedListResult); err != nil {
+		t.Fatalf("unmarshal thread loaded list result: %v", err)
+	}
+	if len(threadLoadedListResult.Data) != 2 || threadLoadedListResult.Data[0] != "thr_1" || threadLoadedListResult.NextCursor == nil || *threadLoadedListResult.NextCursor != "cursor_3" {
+		t.Fatalf("unexpected thread loaded list result: %#v", threadLoadedListResult)
 	}
 }
 
