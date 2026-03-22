@@ -176,6 +176,30 @@ func TestForkThreadWithRealCodex(t *testing.T) {
 	}
 }
 
+func TestReadThreadWithRealCodex(t *testing.T) {
+	requireCodex(t)
+
+	client, _ := startTestClient(t, false)
+	started := createPersistedThread(t, client)
+	_ = client.Close()
+
+	readClient, _ := startTestClient(t, false)
+	defer func() {
+		_ = readClient.Close()
+	}()
+
+	readResult, err := readClient.ReadThread(context.Background(), ThreadReadParams{
+		ThreadID:     started.Thread.ID,
+		IncludeTurns: false,
+	})
+	if err != nil {
+		t.Fatalf("ReadThread returned error: %v", err)
+	}
+	if readResult == nil || readResult.Thread.ID != started.Thread.ID {
+		t.Fatalf("expected thread id %q, got %#v", started.Thread.ID, readResult)
+	}
+}
+
 func TestProcessExitReturnsErrorWhenRestartDisabled(t *testing.T) {
 	requireCodex(t)
 
@@ -400,6 +424,16 @@ func TestCoreTypeDecoding(t *testing.T) {
 	}
 	if threadForkResult.Thread.ID != "thr_forked" || threadForkResult.Model != "gpt-5.4" {
 		t.Fatalf("unexpected thread fork result: %#v", threadForkResult)
+	}
+
+	var threadReadResult ThreadReadResult
+	if err := json.Unmarshal([]byte(`{
+		"thread":{"id":"thr_read","status":{"type":"idle"}}
+	}`), &threadReadResult); err != nil {
+		t.Fatalf("unmarshal thread read result: %v", err)
+	}
+	if threadReadResult.Thread.ID != "thr_read" || threadReadResult.Thread.Status == nil || threadReadResult.Thread.Status.Type != "idle" {
+		t.Fatalf("unexpected thread read result: %#v", threadReadResult)
 	}
 }
 
