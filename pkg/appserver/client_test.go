@@ -2,6 +2,7 @@ package appserver
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"os"
@@ -670,6 +671,70 @@ func TestExecCommandWithRealCodex(t *testing.T) {
 	}
 }
 
+func TestWriteCommandStdinWithRealCodex(t *testing.T) {
+	requireCodex(t)
+
+	client, _ := startTestClient(t, false)
+	defer func() {
+		_ = client.Close()
+	}()
+
+	bashPath, err := exec.LookPath("bash")
+	if err != nil {
+		t.Fatalf("LookPath returned error: %v", err)
+	}
+
+	processID := "stdin-test-process"
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	resultCh := make(chan *CommandExecResult, 1)
+	errCh := make(chan error, 1)
+	go func() {
+		result, err := client.ExecCommand(ctx, CommandExecParams{
+			Command:     []string{bashPath, "-lc", "read line; printf '%s' \"$line\""},
+			ProcessID:   &processID,
+			StreamStdin: true,
+		})
+		if err != nil {
+			errCh <- err
+			return
+		}
+		resultCh <- result
+	}()
+
+	payload := base64.StdEncoding.EncodeToString([]byte("hello stdin\n"))
+	deadline := time.Now().Add(5 * time.Second)
+	for {
+		_, err = client.WriteCommandStdin(ctx, CommandExecWriteParams{
+			ProcessID:   processID,
+			DeltaBase64: &payload,
+			CloseStdin:  true,
+		})
+		if err == nil {
+			break
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("WriteCommandStdin returned error: %v", err)
+		}
+		time.Sleep(50 * time.Millisecond)
+	}
+
+	select {
+	case err := <-errCh:
+		t.Fatalf("ExecCommand returned error: %v", err)
+	case result := <-resultCh:
+		if result == nil {
+			t.Fatal("expected command result")
+		}
+		if result.ExitCode != 0 || result.Stdout != "hello stdin" {
+			t.Fatalf("unexpected command result: %#v", result)
+		}
+	case <-ctx.Done():
+		t.Fatalf("timed out waiting for command result: %v", ctx.Err())
+	}
+}
+
 func TestProcessExitReturnsErrorWhenRestartDisabled(t *testing.T) {
 	requireCodex(t)
 
@@ -1022,6 +1087,11 @@ func TestCoreTypeDecoding(t *testing.T) {
 	}
 	if commandExecResult.ExitCode != 0 || commandExecResult.Stdout != "ok" {
 		t.Fatalf("unexpected command exec result: %#v", commandExecResult)
+	}
+
+	var commandExecWriteResult CommandExecWriteResult
+	if err := json.Unmarshal([]byte(`{}`), &commandExecWriteResult); err != nil {
+		t.Fatalf("unmarshal command exec write result: %v", err)
 	}
 }
 
