@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"os"
 	"os/exec"
 	"strings"
 	"testing"
@@ -634,6 +635,41 @@ func TestStartReviewWithRealCodex(t *testing.T) {
 	}
 }
 
+func TestExecCommandWithRealCodex(t *testing.T) {
+	requireCodex(t)
+
+	client, _ := startTestClient(t, false)
+	defer func() {
+		_ = client.Close()
+	}()
+
+	cwd, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("Getwd returned error: %v", err)
+	}
+	bashPath, err := exec.LookPath("bash")
+	if err != nil {
+		t.Fatalf("LookPath returned error: %v", err)
+	}
+
+	result, err := client.ExecCommand(context.Background(), CommandExecParams{
+		Command: []string{bashPath, "-lc", "pwd"},
+		Cwd:     &cwd,
+	})
+	if err != nil {
+		t.Fatalf("ExecCommand returned error: %v", err)
+	}
+	if result == nil {
+		t.Fatal("expected command result")
+	}
+	if result.ExitCode != 0 {
+		t.Fatalf("expected exitCode=0, got %#v", result)
+	}
+	if strings.TrimSpace(result.Stdout) != cwd {
+		t.Fatalf("expected stdout to equal cwd %q, got %#v", cwd, result.Stdout)
+	}
+}
+
 func TestProcessExitReturnsErrorWhenRestartDisabled(t *testing.T) {
 	requireCodex(t)
 
@@ -974,6 +1010,18 @@ func TestCoreTypeDecoding(t *testing.T) {
 	}
 	if reviewStartResult.ReviewThreadID != "thr_review" || reviewStartResult.Turn.ID != "turn_review" {
 		t.Fatalf("unexpected review start result: %#v", reviewStartResult)
+	}
+
+	var commandExecResult CommandExecResult
+	if err := json.Unmarshal([]byte(`{
+		"exitCode":0,
+		"stdout":"ok",
+		"stderr":""
+	}`), &commandExecResult); err != nil {
+		t.Fatalf("unmarshal command exec result: %v", err)
+	}
+	if commandExecResult.ExitCode != 0 || commandExecResult.Stdout != "ok" {
+		t.Fatalf("unexpected command exec result: %#v", commandExecResult)
 	}
 }
 
