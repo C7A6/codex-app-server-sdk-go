@@ -1113,6 +1113,142 @@ func TestDetectExternalAgentConfigWithRealCodex(t *testing.T) {
 	}
 }
 
+func TestImportExternalAgentConfigWithRealCodex(t *testing.T) {
+	requireCodex(t)
+
+	client, _ := startTestClient(t, false)
+	defer func() {
+		_ = client.Close()
+	}()
+
+	result, err := client.ImportExternalAgentConfig(context.Background(), ExternalAgentConfigImportParams{
+		MigrationItems: []ExternalAgentConfigMigrationItem{},
+	})
+	if err != nil {
+		t.Fatalf("ImportExternalAgentConfig returned error: %v", err)
+	}
+	if result == nil {
+		t.Fatal("expected external agent import result")
+	}
+}
+
+func TestFilesystemOperationsWithRealCodex(t *testing.T) {
+	requireCodex(t)
+
+	client, _ := startTestClient(t, false)
+	defer func() {
+		_ = client.Close()
+	}()
+
+	root := t.TempDir()
+	nestedDir := root + "/nested/dir"
+	filePath := nestedDir + "/hello.txt"
+	copyPath := nestedDir + "/copy.txt"
+	payload := []byte("hello via fs api")
+	payloadBase64 := base64.StdEncoding.EncodeToString(payload)
+
+	recursive := true
+	createResult, err := client.CreateDirectory(context.Background(), FSCreateDirectoryParams{
+		Path:      nestedDir,
+		Recursive: &recursive,
+	})
+	if err != nil {
+		t.Fatalf("CreateDirectory returned error: %v", err)
+	}
+	if createResult == nil {
+		t.Fatal("expected create directory result")
+	}
+
+	writeResult, err := client.WriteFile(context.Background(), FSWriteFileParams{
+		Path:       filePath,
+		DataBase64: payloadBase64,
+	})
+	if err != nil {
+		t.Fatalf("WriteFile returned error: %v", err)
+	}
+	if writeResult == nil {
+		t.Fatal("expected write file result")
+	}
+
+	readResult, err := client.ReadFile(context.Background(), FSReadFileParams{Path: filePath})
+	if err != nil {
+		t.Fatalf("ReadFile returned error: %v", err)
+	}
+	if readResult == nil || readResult.DataBase64 != payloadBase64 {
+		t.Fatalf("unexpected read file result: %#v", readResult)
+	}
+
+	metadataResult, err := client.GetMetadata(context.Background(), FSGetMetadataParams{Path: filePath})
+	if err != nil {
+		t.Fatalf("GetMetadata returned error: %v", err)
+	}
+	if metadataResult == nil || !metadataResult.IsFile || metadataResult.IsDirectory {
+		t.Fatalf("unexpected metadata result: %#v", metadataResult)
+	}
+
+	dirResult, err := client.ReadDirectory(context.Background(), FSReadDirectoryParams{Path: nestedDir})
+	if err != nil {
+		t.Fatalf("ReadDirectory returned error: %v", err)
+	}
+	if dirResult == nil {
+		t.Fatal("expected read directory result")
+	}
+	var foundOriginal bool
+	for _, entry := range dirResult.Entries {
+		if entry.FileName == "hello.txt" {
+			foundOriginal = true
+			if !entry.IsFile || entry.IsDirectory {
+				t.Fatalf("unexpected directory entry: %#v", entry)
+			}
+		}
+	}
+	if !foundOriginal {
+		t.Fatalf("expected hello.txt entry: %#v", dirResult)
+	}
+
+	copyResult, err := client.CopyPath(context.Background(), FSCopyPathParams{
+		SourcePath:      filePath,
+		DestinationPath: copyPath,
+		Recursive:       false,
+	})
+	if err != nil {
+		t.Fatalf("CopyPath returned error: %v", err)
+	}
+	if copyResult == nil {
+		t.Fatal("expected copy path result")
+	}
+
+	copiedReadResult, err := client.ReadFile(context.Background(), FSReadFileParams{Path: copyPath})
+	if err != nil {
+		t.Fatalf("ReadFile copied path returned error: %v", err)
+	}
+	if copiedReadResult == nil || copiedReadResult.DataBase64 != payloadBase64 {
+		t.Fatalf("unexpected copied read result: %#v", copiedReadResult)
+	}
+
+	force := false
+	removeResult, err := client.RemovePath(context.Background(), FSRemovePathParams{
+		Path:  copyPath,
+		Force: &force,
+	})
+	if err != nil {
+		t.Fatalf("RemovePath returned error: %v", err)
+	}
+	if removeResult == nil {
+		t.Fatal("expected remove path result")
+	}
+
+	dirResultAfterRemove, err := client.ReadDirectory(context.Background(), FSReadDirectoryParams{Path: nestedDir})
+	if err != nil {
+		t.Fatalf("ReadDirectory after remove returned error: %v", err)
+	}
+	for _, entry := range dirResultAfterRemove.Entries {
+		if entry.FileName == "copy.txt" {
+			t.Fatalf("expected copy.txt to be removed: %#v", dirResultAfterRemove)
+		}
+	}
+}
+
 func TestListPluginsWithRealCodex(t *testing.T) {
 	requireCodex(t)
 
@@ -1510,6 +1646,42 @@ func TestCoreTypeDecoding(t *testing.T) {
 	}
 	if len(detectResult.Items) != 1 || detectResult.Items[0].ItemType != ExternalAgentConfigMigrationItemTypeAgentsMD {
 		t.Fatalf("unexpected external agent detect result: %#v", detectResult)
+	}
+
+	var importResult ExternalAgentConfigImportResult
+	if err := json.Unmarshal([]byte(`{}`), &importResult); err != nil {
+		t.Fatalf("unmarshal external agent import result: %v", err)
+	}
+
+	var fsReadFileResult FSReadFileResult
+	if err := json.Unmarshal([]byte(`{"dataBase64":"aGVsbG8="}`), &fsReadFileResult); err != nil {
+		t.Fatalf("unmarshal fs read file result: %v", err)
+	}
+	if fsReadFileResult.DataBase64 != "aGVsbG8=" {
+		t.Fatalf("unexpected fs read file result: %#v", fsReadFileResult)
+	}
+
+	var fsGetMetadataResult FSGetMetadataResult
+	if err := json.Unmarshal([]byte(`{
+		"createdAtMs":1,
+		"isDirectory":false,
+		"isFile":true,
+		"modifiedAtMs":2
+	}`), &fsGetMetadataResult); err != nil {
+		t.Fatalf("unmarshal fs metadata result: %v", err)
+	}
+	if !fsGetMetadataResult.IsFile || fsGetMetadataResult.IsDirectory {
+		t.Fatalf("unexpected fs metadata result: %#v", fsGetMetadataResult)
+	}
+
+	var fsReadDirectoryResult FSReadDirectoryResult
+	if err := json.Unmarshal([]byte(`{
+		"entries":[{"fileName":"hello.txt","isDirectory":false,"isFile":true}]
+	}`), &fsReadDirectoryResult); err != nil {
+		t.Fatalf("unmarshal fs read directory result: %v", err)
+	}
+	if len(fsReadDirectoryResult.Entries) != 1 || fsReadDirectoryResult.Entries[0].FileName != "hello.txt" {
+		t.Fatalf("unexpected fs read directory result: %#v", fsReadDirectoryResult)
 	}
 
 	var modelListResult ModelListResult
