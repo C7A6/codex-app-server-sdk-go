@@ -854,6 +854,34 @@ func TestTerminateCommandWithRealCodex(t *testing.T) {
 	}
 }
 
+func TestListSkillsWithRealCodex(t *testing.T) {
+	requireCodex(t)
+
+	client, _ := startTestClient(t, false)
+	defer func() {
+		_ = client.Close()
+	}()
+
+	cwd, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("Getwd returned error: %v", err)
+	}
+
+	result, err := client.ListSkills(context.Background(), SkillsListParams{
+		Cwds:        []string{cwd},
+		ForceReload: true,
+	})
+	if err != nil {
+		t.Fatalf("ListSkills returned error: %v", err)
+	}
+	if result == nil || len(result.Data) == 0 {
+		t.Fatalf("expected skills list payload: %#v", result)
+	}
+	if result.Data[0].Cwd == "" {
+		t.Fatalf("expected cwd in first entry: %#v", result.Data[0])
+	}
+}
+
 func TestProcessExitReturnsErrorWhenRestartDisabled(t *testing.T) {
 	requireCodex(t)
 
@@ -1221,6 +1249,26 @@ func TestCoreTypeDecoding(t *testing.T) {
 	var commandExecTerminateResult CommandExecTerminateResult
 	if err := json.Unmarshal([]byte(`{}`), &commandExecTerminateResult); err != nil {
 		t.Fatalf("unmarshal command exec terminate result: %v", err)
+	}
+
+	var skillsListResult SkillsListResult
+	if err := json.Unmarshal([]byte(`{
+		"data":[{
+			"cwd":"/tmp/repo",
+			"errors":[],
+			"skills":[{
+				"name":"build",
+				"description":"Build the project",
+				"enabled":true,
+				"path":"/tmp/repo/.codex/skills/build",
+				"scope":"repo"
+			}]
+		}]
+	}`), &skillsListResult); err != nil {
+		t.Fatalf("unmarshal skills list result: %v", err)
+	}
+	if len(skillsListResult.Data) != 1 || len(skillsListResult.Data[0].Skills) != 1 || skillsListResult.Data[0].Skills[0].Name != "build" {
+		t.Fatalf("unexpected skills list result: %#v", skillsListResult)
 	}
 }
 
