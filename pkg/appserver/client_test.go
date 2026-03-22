@@ -882,6 +882,43 @@ func TestListSkillsWithRealCodex(t *testing.T) {
 	}
 }
 
+func TestWriteSkillsConfigWithRealCodex(t *testing.T) {
+	requireCodex(t)
+
+	client, _ := startTestClient(t, false)
+	defer func() {
+		_ = client.Close()
+	}()
+
+	cwd, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("Getwd returned error: %v", err)
+	}
+
+	listResult, err := client.ListSkills(context.Background(), SkillsListParams{
+		Cwds:        []string{cwd},
+		ForceReload: true,
+	})
+	if err != nil {
+		t.Fatalf("ListSkills returned error: %v", err)
+	}
+	if listResult == nil || len(listResult.Data) == 0 || len(listResult.Data[0].Skills) == 0 {
+		t.Fatalf("expected at least one skill to write config for: %#v", listResult)
+	}
+
+	skill := listResult.Data[0].Skills[0]
+	writeResult, err := client.WriteSkillsConfig(context.Background(), SkillsConfigWriteParams{
+		Path:    skill.Path,
+		Enabled: skill.Enabled,
+	})
+	if err != nil {
+		t.Fatalf("WriteSkillsConfig returned error: %v", err)
+	}
+	if writeResult == nil || writeResult.EffectiveEnabled != skill.Enabled {
+		t.Fatalf("expected effective enabled %v, got %#v", skill.Enabled, writeResult)
+	}
+}
+
 func TestProcessExitReturnsErrorWhenRestartDisabled(t *testing.T) {
 	requireCodex(t)
 
@@ -1269,6 +1306,14 @@ func TestCoreTypeDecoding(t *testing.T) {
 	}
 	if len(skillsListResult.Data) != 1 || len(skillsListResult.Data[0].Skills) != 1 || skillsListResult.Data[0].Skills[0].Name != "build" {
 		t.Fatalf("unexpected skills list result: %#v", skillsListResult)
+	}
+
+	var skillsConfigWriteResult SkillsConfigWriteResult
+	if err := json.Unmarshal([]byte(`{"effectiveEnabled":true}`), &skillsConfigWriteResult); err != nil {
+		t.Fatalf("unmarshal skills config write result: %v", err)
+	}
+	if !skillsConfigWriteResult.EffectiveEnabled {
+		t.Fatalf("unexpected skills config write result: %#v", skillsConfigWriteResult)
 	}
 }
 
