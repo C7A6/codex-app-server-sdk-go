@@ -155,9 +155,9 @@ The current `RegisterNotificationHandler` uses a `func(context.Context, Notifica
 
 The SDK currently provides only low-level RPC methods, requiring 50+ lines of event coordination code for basic workflows like "create thread → send message → wait for completion." Add high-level workflow APIs.
 
-- [ ] `SendMessageAndWait`: Accepts a thread ID and input text, calls `turn/start`, internally subscribes to turn/completed, blocks until the turn finishes, and returns the final `TurnCompletedEvent`. Supports timeout and cancellation through context.
-- [ ] `StreamTurn`: Calls turn/start and streams all events for that turn (item/started, item/completed, deltas, etc.) into a Go channel. Consumers use `for event := range ch { switch e := event.(type) { ... } }` to process events.
-- [ ] `QuickThread`: All-in-one convenience method that creates a thread, sends the first message, and waits for completion in a single call. Suited for simple one-shot query scenarios.
+- [x] `SendMessageAndWait`: Accepts a thread ID and input text, calls `turn/start`, internally subscribes to turn/completed, blocks until the turn finishes, and returns the final `TurnCompletedEvent`. Supports timeout and cancellation through context.
+- [x] `StreamTurn`: Calls turn/start and streams all events for that turn (item/started, item/completed, deltas, etc.) into a Go channel. Consumers use `for event := range ch { switch e := event.(type) { ... } }` to process events.
+- [x] `QuickThread`: All-in-one convenience method that creates a thread, sends the first message, and waits for completion in a single call. Suited for simple one-shot query scenarios.
 
 ### Structured Error Types
 
