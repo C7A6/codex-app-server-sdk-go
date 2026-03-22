@@ -444,6 +444,35 @@ func TestCompactThreadWithRealCodex(t *testing.T) {
 	}
 }
 
+func TestRollbackThreadWithRealCodex(t *testing.T) {
+	requireCodex(t)
+
+	client, _ := startTestClient(t, false)
+	started := createPersistedThread(t, client)
+	defer func() {
+		_ = client.Close()
+	}()
+
+	startCompletedTurn(t, client, started.Thread.ID, "second turn")
+
+	result, err := client.RollbackThread(context.Background(), ThreadRollbackParams{
+		ThreadID: started.Thread.ID,
+		NumTurns: 1,
+	})
+	if err != nil {
+		t.Fatalf("RollbackThread returned error: %v", err)
+	}
+	if result == nil || result.Thread.ID != started.Thread.ID {
+		t.Fatalf("expected rolled back thread id %q, got %#v", started.Thread.ID, result)
+	}
+	if len(result.Thread.Turns) == 0 {
+		t.Fatalf("expected rollback result to include turns: %#v", result)
+	}
+	if len(result.Thread.Turns) != 1 {
+		t.Fatalf("expected one remaining turn after rollback, got %#v", result.Thread.Turns)
+	}
+}
+
 func TestProcessExitReturnsErrorWhenRestartDisabled(t *testing.T) {
 	requireCodex(t)
 
@@ -737,6 +766,20 @@ func TestCoreTypeDecoding(t *testing.T) {
 	if err := json.Unmarshal([]byte(`{}`), &threadCompactStartResult); err != nil {
 		t.Fatalf("unmarshal thread compact start result: %v", err)
 	}
+
+	var threadRollbackResult ThreadRollbackResult
+	if err := json.Unmarshal([]byte(`{
+		"thread":{
+			"id":"thr_rollback",
+			"status":{"type":"idle"},
+			"turns":[{"id":"turn_1","status":"completed"}]
+		}
+	}`), &threadRollbackResult); err != nil {
+		t.Fatalf("unmarshal thread rollback result: %v", err)
+	}
+	if threadRollbackResult.Thread.ID != "thr_rollback" || len(threadRollbackResult.Thread.Turns) != 1 || threadRollbackResult.Thread.Turns[0].ID != "turn_1" {
+		t.Fatalf("unexpected thread rollback result: %#v", threadRollbackResult)
+	}
 }
 
 func TestRegisterNotificationHandlerCanDecodeTypedEvent(t *testing.T) {
@@ -825,6 +868,20 @@ func createPersistedThread(t *testing.T, client *Client) *ThreadStartResult {
 		t.Fatalf("StartThread returned error: %v", err)
 	}
 
+	startCompletedTurn(t, client, started.Thread.ID, "hello")
+
+	return started
+}
+
+func startCompletedTurn(t *testing.T, client *Client, threadID string, text string) {
+	t.Helper()
+
+	waitForCompletedTurn(t, client, threadID, text)
+}
+
+func waitForCompletedTurn(t *testing.T, client *Client, threadID string, text string) {
+	t.Helper()
+
 	turnCompleted := make(chan *TurnCompletedEvent, 1)
 	unregister, err := client.RegisterNotificationHandler(MethodTurnCompleted, func(ctx context.Context, notification Notification) {
 		event, err := notification.DecodeEvent()
@@ -834,7 +891,7 @@ func createPersistedThread(t *testing.T, client *Client) *ThreadStartResult {
 		}
 
 		completed, ok := event.(*TurnCompletedEvent)
-		if !ok || completed.ThreadID != started.Thread.ID {
+		if !ok || completed.ThreadID != threadID {
 			return
 		}
 
@@ -855,11 +912,11 @@ func createPersistedThread(t *testing.T, client *Client) *ThreadStartResult {
 		Turn Turn `json:"turn"`
 	}
 	if err := client.Call(ctx, "turn/start", map[string]any{
-		"threadId": started.Thread.ID,
+		"threadId": threadID,
 		"input": []map[string]any{
 			{
 				"type": "text",
-				"text": "hello",
+				"text": text,
 			},
 		},
 	}, &turnStartResult); err != nil {
@@ -871,8 +928,6 @@ func createPersistedThread(t *testing.T, client *Client) *ThreadStartResult {
 	case <-ctx.Done():
 		t.Fatalf("timed out waiting for turn completion: %v", ctx.Err())
 	}
-
-	return started
 }
 
 func killActiveProcess(t *testing.T, client *Client) {
