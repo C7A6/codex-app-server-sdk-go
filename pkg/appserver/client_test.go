@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"os/exec"
+	"strings"
 	"testing"
 	"time"
 )
@@ -503,6 +504,59 @@ func TestStartTurnWithRealCodex(t *testing.T) {
 	}
 }
 
+func TestSteerTurnWithRealCodex(t *testing.T) {
+	requireCodex(t)
+
+	client, _ := startTestClient(t, false)
+	defer func() {
+		_ = client.Close()
+	}()
+
+	started, err := client.StartThread(context.Background(), ThreadStartParams{})
+	if err != nil {
+		t.Fatalf("StartThread returned error: %v", err)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 90*time.Second)
+	defer cancel()
+
+	startTurnResult, err := client.StartTurn(ctx, TurnStartParams{
+		ThreadID: started.Thread.ID,
+		Input: []TurnStartInputItem{
+			{
+				"type": "text",
+				"text": "Inspect every Go file in the current repository, summarize the package structure in detail, and include concrete file examples before giving a final answer.",
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("StartTurn returned error: %v", err)
+	}
+	if startTurnResult == nil || startTurnResult.Turn.ID == "" {
+		t.Fatalf("expected active turn response: %#v", startTurnResult)
+	}
+
+	steerResult, err := client.SteerTurn(ctx, TurnSteerParams{
+		ThreadID:       started.Thread.ID,
+		ExpectedTurnID: startTurnResult.Turn.ID,
+		Input: []TurnStartInputItem{
+			{
+				"type": "text",
+				"text": "Keep it concise instead and end with a one-line summary.",
+			},
+		},
+	})
+	if err != nil {
+		if !strings.Contains(err.Error(), "no active turn to steer") {
+			t.Fatalf("SteerTurn returned unexpected error: %v", err)
+		}
+		return
+	}
+	if steerResult == nil || steerResult.TurnID != startTurnResult.Turn.ID {
+		t.Fatalf("expected steer to target turn %q, got %#v", startTurnResult.Turn.ID, steerResult)
+	}
+}
+
 func TestProcessExitReturnsErrorWhenRestartDisabled(t *testing.T) {
 	requireCodex(t)
 
@@ -819,6 +873,14 @@ func TestCoreTypeDecoding(t *testing.T) {
 	}
 	if turnStartResult.Turn.ID != "turn_started" || turnStartResult.Turn.Status != "inProgress" {
 		t.Fatalf("unexpected turn start result: %#v", turnStartResult)
+	}
+
+	var turnSteerResult TurnSteerResult
+	if err := json.Unmarshal([]byte(`{"turnId":"turn_started"}`), &turnSteerResult); err != nil {
+		t.Fatalf("unmarshal turn steer result: %v", err)
+	}
+	if turnSteerResult.TurnID != "turn_started" {
+		t.Fatalf("unexpected turn steer result: %#v", turnSteerResult)
 	}
 }
 
