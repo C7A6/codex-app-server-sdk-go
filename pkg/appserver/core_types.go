@@ -105,6 +105,12 @@ type CommandExecResizeParams struct {
 
 type CommandExecResizeResult struct{}
 
+type CommandExecTerminateParams struct {
+	ProcessID string `json:"processId"`
+}
+
+type CommandExecTerminateResult struct{}
+
 type ConfigValueMap map[string]any
 
 type ConfigLayer map[string]any
