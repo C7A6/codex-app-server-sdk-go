@@ -89,7 +89,7 @@
 
 ### Configuration And Filesystem
 
-- [ ] `ReadConfig`: Why callers may need the resolved effective app-server configuration. How call `config/read` and decode layered configuration values.
+- [x] `ReadConfig`: Why callers may need the resolved effective app-server configuration. How call `config/read` and decode layered configuration values.
 - [ ] `WriteConfigValue`: Why single configuration keys should be writable through the SDK. How call `config/value/write` with a typed key and value payload.
 - [ ] `BatchWriteConfig`: Why multiple config edits should be applied atomically. How call `config/batchWrite` and decode the committed configuration response.
 - [ ] `ReadConfigRequirements`: Why enterprise clients may need requirement and policy metadata. How call `configRequirements/read` and decode allow-lists and residency constraints.
