@@ -351,6 +351,8 @@ type MCPOAuthLoginResult struct {
 	AuthorizationURL string `json:"authorizationUrl"`
 }
 
+type MCPServerRefreshResult struct{}
+
 type ModelListParams struct {
 	Cursor        *string `json:"cursor,omitempty"`
 	IncludeHidden *bool   `json:"includeHidden,omitempty"`

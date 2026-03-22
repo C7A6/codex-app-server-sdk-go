@@ -424,6 +424,14 @@ func (c *Client) StartMCPOAuthLogin(ctx context.Context, params MCPOAuthLoginPar
 	return result, nil
 }
 
+func (c *Client) ReloadMCPServerConfig(ctx context.Context) (*MCPServerRefreshResult, error) {
+	result := &MCPServerRefreshResult{}
+	if err := c.Call(ctx, "config/mcpServer/reload", nil, result); err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
 func (c *Client) Close() error {
 	c.mu.Lock()
 	if c.closed {
