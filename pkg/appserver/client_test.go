@@ -604,6 +604,36 @@ func TestInterruptTurnWithRealCodex(t *testing.T) {
 	}
 }
 
+func TestStartReviewWithRealCodex(t *testing.T) {
+	requireCodex(t)
+
+	client, _ := startTestClient(t, false)
+	defer func() {
+		_ = client.Close()
+	}()
+
+	started, err := client.StartThread(context.Background(), ThreadStartParams{})
+	if err != nil {
+		t.Fatalf("StartThread returned error: %v", err)
+	}
+
+	delivery := ReviewDeliveryInline
+	result, err := client.StartReview(context.Background(), ReviewStartParams{
+		ThreadID: started.Thread.ID,
+		Delivery: &delivery,
+		Target: ReviewTarget{
+			"type":         "custom",
+			"instructions": "Review the current state briefly and report any obvious issues.",
+		},
+	})
+	if err != nil {
+		t.Fatalf("StartReview returned error: %v", err)
+	}
+	if result == nil || result.ReviewThreadID == "" || result.Turn.ID == "" {
+		t.Fatalf("expected review start result payload: %#v", result)
+	}
+}
+
 func TestProcessExitReturnsErrorWhenRestartDisabled(t *testing.T) {
 	requireCodex(t)
 
@@ -933,6 +963,17 @@ func TestCoreTypeDecoding(t *testing.T) {
 	var turnInterruptResult TurnInterruptResult
 	if err := json.Unmarshal([]byte(`{}`), &turnInterruptResult); err != nil {
 		t.Fatalf("unmarshal turn interrupt result: %v", err)
+	}
+
+	var reviewStartResult ReviewStartResult
+	if err := json.Unmarshal([]byte(`{
+		"reviewThreadId":"thr_review",
+		"turn":{"id":"turn_review","status":"inProgress"}
+	}`), &reviewStartResult); err != nil {
+		t.Fatalf("unmarshal review start result: %v", err)
+	}
+	if reviewStartResult.ReviewThreadID != "thr_review" || reviewStartResult.Turn.ID != "turn_review" {
+		t.Fatalf("unexpected review start result: %#v", reviewStartResult)
 	}
 }
 
