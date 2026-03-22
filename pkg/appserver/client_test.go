@@ -735,6 +735,67 @@ func TestWriteCommandStdinWithRealCodex(t *testing.T) {
 	}
 }
 
+func TestResizeCommandPTYWithRealCodex(t *testing.T) {
+	requireCodex(t)
+
+	client, _ := startTestClient(t, false)
+	defer func() {
+		_ = client.Close()
+	}()
+
+	bashPath, err := exec.LookPath("bash")
+	if err != nil {
+		t.Fatalf("LookPath returned error: %v", err)
+	}
+
+	processID := "resize-test-process"
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	resultCh := make(chan *CommandExecResult, 1)
+	errCh := make(chan error, 1)
+	go func() {
+		result, err := client.ExecCommand(ctx, CommandExecParams{
+			Command:     []string{bashPath, "-lc", "sleep 1"},
+			ProcessID:   &processID,
+			TTY:         true,
+			Size:        &CommandExecTerminalSize{Rows: 24, Cols: 80},
+			StreamStdin: true,
+		})
+		if err != nil {
+			errCh <- err
+			return
+		}
+		resultCh <- result
+	}()
+
+	deadline := time.Now().Add(5 * time.Second)
+	for {
+		_, err = client.ResizeCommandPTY(ctx, CommandExecResizeParams{
+			ProcessID: processID,
+			Size: CommandExecTerminalSize{
+				Rows: 40,
+				Cols: 120,
+			},
+		})
+		if err == nil {
+			break
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("ResizeCommandPTY returned error: %v", err)
+		}
+		time.Sleep(50 * time.Millisecond)
+	}
+
+	select {
+	case err := <-errCh:
+		t.Fatalf("ExecCommand returned error: %v", err)
+	case <-resultCh:
+	case <-ctx.Done():
+		t.Fatalf("timed out waiting for command result: %v", ctx.Err())
+	}
+}
+
 func TestProcessExitReturnsErrorWhenRestartDisabled(t *testing.T) {
 	requireCodex(t)
 
@@ -1092,6 +1153,11 @@ func TestCoreTypeDecoding(t *testing.T) {
 	var commandExecWriteResult CommandExecWriteResult
 	if err := json.Unmarshal([]byte(`{}`), &commandExecWriteResult); err != nil {
 		t.Fatalf("unmarshal command exec write result: %v", err)
+	}
+
+	var commandExecResizeResult CommandExecResizeResult
+	if err := json.Unmarshal([]byte(`{}`), &commandExecResizeResult); err != nil {
+		t.Fatalf("unmarshal command exec resize result: %v", err)
 	}
 }
 
