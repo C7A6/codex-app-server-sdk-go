@@ -465,6 +465,24 @@ type MCPServerStatusListResult struct {
 	NextCursor *string           `json:"nextCursor,omitempty"`
 }
 
+type ConfigRequirementsResidency string
+
+const (
+	ConfigRequirementsResidencyUS ConfigRequirementsResidency = "us"
+)
+
+type ConfigRequirements struct {
+	AllowedApprovalPolicies []json.RawMessage            `json:"allowedApprovalPolicies,omitempty"`
+	AllowedSandboxModes     []string                     `json:"allowedSandboxModes,omitempty"`
+	AllowedWebSearchModes   []string                     `json:"allowedWebSearchModes,omitempty"`
+	EnforceResidency        *ConfigRequirementsResidency `json:"enforceResidency,omitempty"`
+	FeatureRequirements     map[string]bool              `json:"featureRequirements,omitempty"`
+}
+
+type ConfigRequirementsReadResult struct {
+	Requirements *ConfigRequirements `json:"requirements"`
+}
+
 type ModelListParams struct {
 	Cursor        *string `json:"cursor,omitempty"`
 	IncludeHidden *bool   `json:"includeHidden,omitempty"`

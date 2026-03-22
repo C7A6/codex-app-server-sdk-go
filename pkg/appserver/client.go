@@ -416,6 +416,14 @@ func (c *Client) BatchWriteConfig(ctx context.Context, params ConfigBatchWritePa
 	return result, nil
 }
 
+func (c *Client) ReadConfigRequirements(ctx context.Context) (*ConfigRequirementsReadResult, error) {
+	result := &ConfigRequirementsReadResult{}
+	if err := c.Call(ctx, "configRequirements/read", map[string]any{}, result); err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
 func (c *Client) ListPlugins(ctx context.Context, params PluginListParams) (*PluginListResult, error) {
 	result := &PluginListResult{}
 	if err := c.Call(ctx, "plugin/list", params, result); err != nil {
