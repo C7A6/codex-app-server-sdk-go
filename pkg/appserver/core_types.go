@@ -90,6 +90,14 @@ type CommandExecParams struct {
 	TTY                bool                     `json:"tty,omitempty"`
 }
 
+type CommandExecWriteParams struct {
+	ProcessID   string  `json:"processId"`
+	CloseStdin  bool    `json:"closeStdin,omitempty"`
+	DeltaBase64 *string `json:"deltaBase64,omitempty"`
+}
+
+type CommandExecWriteResult struct{}
+
 type ConfigValueMap map[string]any
 
 type ConfigLayer map[string]any

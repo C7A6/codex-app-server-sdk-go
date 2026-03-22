@@ -352,6 +352,14 @@ func (c *Client) ExecCommand(ctx context.Context, params CommandExecParams) (*Co
 	return result, nil
 }
 
+func (c *Client) WriteCommandStdin(ctx context.Context, params CommandExecWriteParams) (*CommandExecWriteResult, error) {
+	result := &CommandExecWriteResult{}
+	if err := c.Call(ctx, "command/exec/write", params, result); err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
 func (c *Client) Close() error {
 	c.mu.Lock()
 	if c.closed {
