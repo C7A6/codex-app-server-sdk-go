@@ -424,6 +424,14 @@ func (c *Client) ReadConfigRequirements(ctx context.Context) (*ConfigRequirement
 	return result, nil
 }
 
+func (c *Client) DetectExternalAgentConfig(ctx context.Context, params ExternalAgentConfigDetectParams) (*ExternalAgentConfigDetectResult, error) {
+	result := &ExternalAgentConfigDetectResult{}
+	if err := c.Call(ctx, "externalAgentConfig/detect", params, result); err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
 func (c *Client) ListPlugins(ctx context.Context, params PluginListParams) (*PluginListResult, error) {
 	result := &PluginListResult{}
 	if err := c.Call(ctx, "plugin/list", params, result); err != nil {

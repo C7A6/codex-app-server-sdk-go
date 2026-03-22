@@ -483,6 +483,30 @@ type ConfigRequirementsReadResult struct {
 	Requirements *ConfigRequirements `json:"requirements"`
 }
 
+type ExternalAgentConfigDetectParams struct {
+	Cwds        []string `json:"cwds,omitempty"`
+	IncludeHome bool     `json:"includeHome,omitempty"`
+}
+
+type ExternalAgentConfigMigrationItemType string
+
+const (
+	ExternalAgentConfigMigrationItemTypeAgentsMD        ExternalAgentConfigMigrationItemType = "AGENTS_MD"
+	ExternalAgentConfigMigrationItemTypeConfig          ExternalAgentConfigMigrationItemType = "CONFIG"
+	ExternalAgentConfigMigrationItemTypeSkills          ExternalAgentConfigMigrationItemType = "SKILLS"
+	ExternalAgentConfigMigrationItemTypeMCPServerConfig ExternalAgentConfigMigrationItemType = "MCP_SERVER_CONFIG"
+)
+
+type ExternalAgentConfigMigrationItem struct {
+	Cwd         *string                              `json:"cwd,omitempty"`
+	Description string                               `json:"description"`
+	ItemType    ExternalAgentConfigMigrationItemType `json:"itemType"`
+}
+
+type ExternalAgentConfigDetectResult struct {
+	Items []ExternalAgentConfigMigrationItem `json:"items"`
+}
+
 type ModelListParams struct {
 	Cursor        *string `json:"cursor,omitempty"`
 	IncludeHidden *bool   `json:"includeHidden,omitempty"`
