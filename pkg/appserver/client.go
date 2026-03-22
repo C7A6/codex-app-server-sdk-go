@@ -432,6 +432,14 @@ func (c *Client) ReloadMCPServerConfig(ctx context.Context) (*MCPServerRefreshRe
 	return result, nil
 }
 
+func (c *Client) ListMCPServerStatus(ctx context.Context, params MCPServerStatusListParams) (*MCPServerStatusListResult, error) {
+	result := &MCPServerStatusListResult{}
+	if err := c.Call(ctx, "mcpServerStatus/list", params, result); err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
 func (c *Client) Close() error {
 	c.mu.Lock()
 	if c.closed {

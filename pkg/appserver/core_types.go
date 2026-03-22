@@ -353,6 +353,65 @@ type MCPOAuthLoginResult struct {
 
 type MCPServerRefreshResult struct{}
 
+type MCPAuthStatus string
+
+const (
+	MCPAuthStatusUnsupported MCPAuthStatus = "unsupported"
+	MCPAuthStatusNotLoggedIn MCPAuthStatus = "notLoggedIn"
+	MCPAuthStatusBearerToken MCPAuthStatus = "bearerToken"
+	MCPAuthStatusOAuth       MCPAuthStatus = "oAuth"
+)
+
+type MCPServerStatusListParams struct {
+	Cursor *string `json:"cursor,omitempty"`
+	Limit  *uint32 `json:"limit,omitempty"`
+}
+
+type MCPResource struct {
+	Meta        json.RawMessage   `json:"_meta,omitempty"`
+	Annotations json.RawMessage   `json:"annotations,omitempty"`
+	Description *string           `json:"description,omitempty"`
+	Icons       []json.RawMessage `json:"icons,omitempty"`
+	MimeType    *string           `json:"mimeType,omitempty"`
+	Name        string            `json:"name"`
+	Size        *int64            `json:"size,omitempty"`
+	Title       *string           `json:"title,omitempty"`
+	URI         string            `json:"uri"`
+}
+
+type MCPResourceTemplate struct {
+	Annotations json.RawMessage `json:"annotations,omitempty"`
+	Description *string         `json:"description,omitempty"`
+	MimeType    *string         `json:"mimeType,omitempty"`
+	Name        string          `json:"name"`
+	Title       *string         `json:"title,omitempty"`
+	URITemplate string          `json:"uriTemplate"`
+}
+
+type MCPTool struct {
+	Meta         json.RawMessage   `json:"_meta,omitempty"`
+	Annotations  json.RawMessage   `json:"annotations,omitempty"`
+	Description  *string           `json:"description,omitempty"`
+	Icons        []json.RawMessage `json:"icons,omitempty"`
+	InputSchema  json.RawMessage   `json:"inputSchema"`
+	Name         string            `json:"name"`
+	OutputSchema json.RawMessage   `json:"outputSchema,omitempty"`
+	Title        *string           `json:"title,omitempty"`
+}
+
+type MCPServerStatus struct {
+	AuthStatus        MCPAuthStatus         `json:"authStatus"`
+	Name              string                `json:"name"`
+	ResourceTemplates []MCPResourceTemplate `json:"resourceTemplates"`
+	Resources         []MCPResource         `json:"resources"`
+	Tools             map[string]MCPTool    `json:"tools"`
+}
+
+type MCPServerStatusListResult struct {
+	Data       []MCPServerStatus `json:"data"`
+	NextCursor *string           `json:"nextCursor,omitempty"`
+}
+
 type ModelListParams struct {
 	Cursor        *string `json:"cursor,omitempty"`
 	IncludeHidden *bool   `json:"includeHidden,omitempty"`
