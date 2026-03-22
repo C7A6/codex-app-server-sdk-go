@@ -312,6 +312,14 @@ func (c *Client) RollbackThread(ctx context.Context, params ThreadRollbackParams
 	return result, nil
 }
 
+func (c *Client) StartTurn(ctx context.Context, params TurnStartParams) (*TurnStartResult, error) {
+	result := &TurnStartResult{}
+	if err := c.Call(ctx, "turn/start", params, result); err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
 func (c *Client) Close() error {
 	c.mu.Lock()
 	if c.closed {

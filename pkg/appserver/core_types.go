@@ -280,3 +280,24 @@ type ThreadRollbackParams struct {
 type ThreadRollbackResult struct {
 	Thread Thread `json:"thread"`
 }
+
+type TurnStartInputItem map[string]any
+
+type TurnStartParams struct {
+	ThreadID          string               `json:"threadId"`
+	Input             []TurnStartInputItem `json:"input"`
+	ApprovalPolicy    any                  `json:"approvalPolicy,omitempty"`
+	ApprovalsReviewer *string              `json:"approvalsReviewer,omitempty"`
+	Cwd               *string              `json:"cwd,omitempty"`
+	Effort            *string              `json:"effort,omitempty"`
+	Model             *string              `json:"model,omitempty"`
+	OutputSchema      any                  `json:"outputSchema,omitempty"`
+	Personality       *string              `json:"personality,omitempty"`
+	SandboxPolicy     any                  `json:"sandboxPolicy,omitempty"`
+	ServiceTier       *string              `json:"serviceTier,omitempty"`
+	Summary           *string              `json:"summary,omitempty"`
+}
+
+type TurnStartResult struct {
+	Turn Turn `json:"turn"`
+}
