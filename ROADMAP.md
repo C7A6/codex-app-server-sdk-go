@@ -57,7 +57,7 @@
 - [x] `ListLoadedThreads`: Why callers may need to inspect in-memory thread state. How call `thread/loaded/list` and decode loaded thread IDs.
 - [x] `SetThreadName`: Why a thread needs a user-facing display name. How call `thread/name/set` with thread identity and the desired label.
 - [x] `ArchiveThread`: Why inactive threads should be removable from the active list without deletion. How call `thread/archive` and treat `{}` as success.
-- [ ] `UnarchiveThread`: Why archived threads must be restorable into active storage. How call `thread/unarchive` and decode the restored thread object.
+- [x] `UnarchiveThread`: Why archived threads must be restorable into active storage. How call `thread/unarchive` and decode the restored thread object.
 - [ ] `UnsubscribeThread`: Why clients may stop receiving turn and item events for a loaded thread. How call `thread/unsubscribe` and decode the unsubscribe result state.
 - [ ] `CompactThread`: Why long conversations may need context compaction. How call `thread/compact/start` and rely on streamed turn and item notifications for progress.
 - [ ] `RollbackThread`: Why a client may need to drop recent turns from working context. How call `thread/rollback` with a rollback count and decode the updated thread.
