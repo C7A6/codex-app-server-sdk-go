@@ -191,6 +191,60 @@ type SkillsConfigWriteResult struct {
 	EffectiveEnabled bool `json:"effectiveEnabled"`
 }
 
+type PluginListParams struct {
+	Cwds            []string `json:"cwds,omitempty"`
+	ForceRemoteSync bool     `json:"forceRemoteSync,omitempty"`
+}
+
+type MarketplaceInterface struct {
+	DisplayName *string `json:"displayName,omitempty"`
+}
+
+type PluginInterface struct {
+	BrandColor        *string  `json:"brandColor,omitempty"`
+	Capabilities      []string `json:"capabilities"`
+	Category          *string  `json:"category,omitempty"`
+	ComposerIcon      *string  `json:"composerIcon,omitempty"`
+	DefaultPrompt     []string `json:"defaultPrompt,omitempty"`
+	DeveloperName     *string  `json:"developerName,omitempty"`
+	DisplayName       *string  `json:"displayName,omitempty"`
+	Logo              *string  `json:"logo,omitempty"`
+	LongDescription   *string  `json:"longDescription,omitempty"`
+	PrivacyPolicyURL  *string  `json:"privacyPolicyUrl,omitempty"`
+	Screenshots       []string `json:"screenshots"`
+	ShortDescription  *string  `json:"shortDescription,omitempty"`
+	TermsOfServiceURL *string  `json:"termsOfServiceUrl,omitempty"`
+	WebsiteURL        *string  `json:"websiteUrl,omitempty"`
+}
+
+type PluginSource struct {
+	Type string  `json:"type"`
+	Path *string `json:"path,omitempty"`
+}
+
+type PluginSummary struct {
+	AuthPolicy    string           `json:"authPolicy"`
+	Enabled       bool             `json:"enabled"`
+	ID            string           `json:"id"`
+	InstallPolicy string           `json:"installPolicy"`
+	Installed     bool             `json:"installed"`
+	Interface     *PluginInterface `json:"interface,omitempty"`
+	Name          string           `json:"name"`
+	Source        PluginSource     `json:"source"`
+}
+
+type PluginMarketplaceEntry struct {
+	Interface *MarketplaceInterface `json:"interface,omitempty"`
+	Name      string                `json:"name"`
+	Path      string                `json:"path"`
+	Plugins   []PluginSummary       `json:"plugins"`
+}
+
+type PluginListResult struct {
+	Marketplaces    []PluginMarketplaceEntry `json:"marketplaces"`
+	RemoteSyncError *string                  `json:"remoteSyncError,omitempty"`
+}
+
 type ModelListParams struct {
 	Cursor        *string `json:"cursor,omitempty"`
 	IncludeHidden *bool   `json:"includeHidden,omitempty"`

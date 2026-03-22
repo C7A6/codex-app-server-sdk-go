@@ -392,6 +392,14 @@ func (c *Client) WriteSkillsConfig(ctx context.Context, params SkillsConfigWrite
 	return result, nil
 }
 
+func (c *Client) ListPlugins(ctx context.Context, params PluginListParams) (*PluginListResult, error) {
+	result := &PluginListResult{}
+	if err := c.Call(ctx, "plugin/list", params, result); err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
 func (c *Client) Close() error {
 	c.mu.Lock()
 	if c.closed {
