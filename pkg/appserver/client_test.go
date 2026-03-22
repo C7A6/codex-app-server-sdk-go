@@ -1062,6 +1062,23 @@ func TestStartMCPOAuthLoginWithRealCodex(t *testing.T) {
 	}
 }
 
+func TestReloadMCPServerConfigWithRealCodex(t *testing.T) {
+	requireCodex(t)
+
+	client, _ := startTestClient(t, false)
+	defer func() {
+		_ = client.Close()
+	}()
+
+	result, err := client.ReloadMCPServerConfig(context.Background())
+	if err != nil {
+		t.Fatalf("ReloadMCPServerConfig returned error: %v", err)
+	}
+	if result == nil {
+		t.Fatal("expected reload result")
+	}
+}
+
 func TestProcessExitReturnsErrorWhenRestartDisabled(t *testing.T) {
 	requireCodex(t)
 
@@ -1538,6 +1555,11 @@ func TestCoreTypeDecoding(t *testing.T) {
 	}
 	if mcpOAuthLoginResult.AuthorizationURL == "" {
 		t.Fatalf("unexpected mcp oauth login result: %#v", mcpOAuthLoginResult)
+	}
+
+	var mcpServerRefreshResult MCPServerRefreshResult
+	if err := json.Unmarshal([]byte(`{}`), &mcpServerRefreshResult); err != nil {
+		t.Fatalf("unmarshal mcp server refresh result: %v", err)
 	}
 }
 
