@@ -328,6 +328,14 @@ func (c *Client) SteerTurn(ctx context.Context, params TurnSteerParams) (*TurnSt
 	return result, nil
 }
 
+func (c *Client) InterruptTurn(ctx context.Context, params TurnInterruptParams) (*TurnInterruptResult, error) {
+	result := &TurnInterruptResult{}
+	if err := c.Call(ctx, "turn/interrupt", params, result); err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
 func (c *Client) Close() error {
 	c.mu.Lock()
 	if c.closed {

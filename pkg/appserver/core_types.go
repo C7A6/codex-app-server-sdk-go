@@ -311,3 +311,10 @@ type TurnSteerParams struct {
 type TurnSteerResult struct {
 	TurnID string `json:"turnId"`
 }
+
+type TurnInterruptParams struct {
+	ThreadID string `json:"threadId"`
+	TurnID   string `json:"turnId"`
+}
+
+type TurnInterruptResult struct{}
