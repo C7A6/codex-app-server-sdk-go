@@ -106,13 +106,15 @@
 ### Auth And Account
 
 - [ ] `ReadAccount`: Why integrations need to inspect the current authentication state. How call `account/read` with `refreshToken` support and decode account and provider metadata.
-- [ ] `StartAPIKeyLogin`: Why clients should support direct API-key authentication. How call `account/login/start` with `type=apiKey` and verify the completion notifications.
-- [ ] `StartChatGPTLogin`: Why browser-based ChatGPT auth is a documented first-class flow. How call `account/login/start` with `type=chatgpt` and return `loginId` and `authUrl`.
-- [ ] `StartChatGPTTokenLogin`: Why host-managed ChatGPT tokens need a dedicated login path. How call `account/login/start` with `type=chatgptAuthTokens`, `idToken`, and `accessToken`.
-- [ ] `CancelLogin`: Why a pending ChatGPT login must be cancellable. How call `account/login/cancel` with `loginId` and rely on completion notifications for the final result.
-- [ ] `Logout`: Why callers need an explicit sign-out API. How call `account/logout` and observe `account/updated` for the post-logout auth mode.
+- [-] `StartAPIKeyLogin`: Out of scope. Direct login flows are intentionally excluded from this SDK for now.
+- [-] `StartChatGPTLogin`: Out of scope. Browser-driven auth orchestration is intentionally excluded from this SDK for now.
+- [-] `StartChatGPTTokenLogin`: Out of scope. Host-managed ChatGPT token login is intentionally excluded from this SDK for now.
+- [-] `CancelLogin`: Out of scope. Login lifecycle cancellation is intentionally excluded because login flows are not being implemented.
+- [-] `Logout`: Out of scope. Explicit sign-out is intentionally excluded while interactive login lifecycle support remains out of scope.
 - [ ] `ReadRateLimits`: Why ChatGPT-backed clients need current quota information. How call `account/rateLimits/read` and decode single-bucket and multi-bucket rate-limit payloads.
-- [ ] `HandleChatGPTTokenRefresh`: Why external-token mode may require the host app to refresh tokens on demand. How register a server-request handler for `account/chatgptAuthTokens/refresh` and send refreshed tokens back.
+- [-] `HandleChatGPTTokenRefresh`: Out of scope. Server-request token refresh handling is intentionally excluded because external-token login support is not being implemented.
+
+Reason: Interactive authentication, logout orchestration, and host-managed ChatGPT token refresh are intentionally out of scope for this SDK at the current stage. The SDK will keep read-only account inspection endpoints, but it will not own end-user login state transitions.
 
 ### Feedback, Windows, And Approvals
 
