@@ -76,14 +76,22 @@ type AccountReadResult struct {
 }
 
 type RateLimitWindow struct {
-	UsedPercent        int   `json:"usedPercent"`
-	WindowDurationMins int   `json:"windowDurationMins"`
-	ResetsAt           int64 `json:"resetsAt"`
+	UsedPercent        int    `json:"usedPercent"`
+	WindowDurationMins *int64 `json:"windowDurationMins"`
+	ResetsAt           *int64 `json:"resetsAt"`
+}
+
+type CreditsSnapshot struct {
+	Balance    *string `json:"balance"`
+	HasCredits bool    `json:"hasCredits"`
+	Unlimited  bool    `json:"unlimited"`
 }
 
 type RateLimitBucket struct {
-	LimitID   string           `json:"limitId"`
+	Credits   *CreditsSnapshot `json:"credits"`
+	LimitID   *string          `json:"limitId"`
 	LimitName *string          `json:"limitName"`
+	PlanType  *string          `json:"planType"`
 	Primary   *RateLimitWindow `json:"primary"`
 	Secondary *RateLimitWindow `json:"secondary"`
 }
@@ -203,6 +211,22 @@ func (c *Client) ReadAccount(ctx context.Context, params AccountReadParams) (*Ac
 func (c *Client) ReadRateLimits(ctx context.Context) (*RateLimitsReadResult, error) {
 	result := &RateLimitsReadResult{}
 	if err := c.Call(ctx, "account/rateLimits/read", nil, result); err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
+func (c *Client) ListExperimentalFeatures(ctx context.Context, params ExperimentalFeatureListParams) (*ExperimentalFeatureListResult, error) {
+	result := &ExperimentalFeatureListResult{}
+	if err := c.Call(ctx, "experimentalFeature/list", params, result); err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
+func (c *Client) ListCollaborationModes(ctx context.Context) (*CollaborationModeListResult, error) {
+	result := &CollaborationModeListResult{}
+	if err := c.Call(ctx, "collaborationMode/list", map[string]any{}, result); err != nil {
 		return nil, err
 	}
 	return result, nil

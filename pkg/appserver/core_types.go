@@ -576,6 +576,54 @@ type FSCopyPathParams struct {
 
 type FSCopyPathResult struct{}
 
+type ExperimentalFeatureStage string
+
+const (
+	ExperimentalFeatureStageBeta             ExperimentalFeatureStage = "beta"
+	ExperimentalFeatureStageUnderDevelopment ExperimentalFeatureStage = "underDevelopment"
+	ExperimentalFeatureStageStable           ExperimentalFeatureStage = "stable"
+	ExperimentalFeatureStageDeprecated       ExperimentalFeatureStage = "deprecated"
+	ExperimentalFeatureStageRemoved          ExperimentalFeatureStage = "removed"
+)
+
+type ExperimentalFeatureListParams struct {
+	Cursor *string `json:"cursor,omitempty"`
+	Limit  *uint32 `json:"limit,omitempty"`
+}
+
+type ExperimentalFeature struct {
+	Announcement   *string                  `json:"announcement,omitempty"`
+	DefaultEnabled bool                     `json:"defaultEnabled"`
+	Description    *string                  `json:"description,omitempty"`
+	DisplayName    *string                  `json:"displayName,omitempty"`
+	Enabled        bool                     `json:"enabled"`
+	Name           string                   `json:"name"`
+	Stage          ExperimentalFeatureStage `json:"stage"`
+}
+
+type ExperimentalFeatureListResult struct {
+	Data       []ExperimentalFeature `json:"data"`
+	NextCursor *string               `json:"nextCursor,omitempty"`
+}
+
+type CollaborationModeKind string
+
+const (
+	CollaborationModeKindPlan    CollaborationModeKind = "plan"
+	CollaborationModeKindDefault CollaborationModeKind = "default"
+)
+
+type CollaborationMode struct {
+	Mode            *CollaborationModeKind `json:"mode,omitempty"`
+	Model           *string                `json:"model,omitempty"`
+	Name            string                 `json:"name"`
+	ReasoningEffort *string                `json:"reasoning_effort,omitempty"`
+}
+
+type CollaborationModeListResult struct {
+	Data []CollaborationMode `json:"data"`
+}
+
 type ModelListParams struct {
 	Cursor        *string `json:"cursor,omitempty"`
 	IncludeHidden *bool   `json:"includeHidden,omitempty"`
