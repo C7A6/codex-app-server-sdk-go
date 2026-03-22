@@ -194,6 +194,43 @@ func TestDecodeNotificationEvent(t *testing.T) {
 	}
 }
 
+func TestCoreTypeDecoding(t *testing.T) {
+	t.Parallel()
+
+	var review ReviewStartResult
+	if err := json.Unmarshal([]byte(`{
+		"reviewThreadId":"thr_review",
+		"turn":{"id":"turn_1","status":"inProgress","items":[{"id":"item_1","type":"agentMessage","text":"hello"}]}
+	}`), &review); err != nil {
+		t.Fatalf("unmarshal review result: %v", err)
+	}
+	if review.ReviewThreadID != "thr_review" {
+		t.Fatalf("unexpected review thread id: %q", review.ReviewThreadID)
+	}
+	if review.Turn.ID != "turn_1" || len(review.Turn.Items) != 1 {
+		t.Fatalf("unexpected turn payload: %#v", review.Turn)
+	}
+
+	var commandResult CommandExecResult
+	if err := json.Unmarshal([]byte(`{"exitCode":0,"stdout":"ok","stderr":""}`), &commandResult); err != nil {
+		t.Fatalf("unmarshal command result: %v", err)
+	}
+	if commandResult.ExitCode != 0 || commandResult.Stdout != "ok" {
+		t.Fatalf("unexpected command result: %#v", commandResult)
+	}
+
+	var configResult ConfigReadResult
+	if err := json.Unmarshal([]byte(`{
+		"config":{"model":"gpt-5.4"},
+		"origins":{"model":{"source":"user"}}
+	}`), &configResult); err != nil {
+		t.Fatalf("unmarshal config result: %v", err)
+	}
+	if configResult.Config["model"] != "gpt-5.4" {
+		t.Fatalf("unexpected config model: %#v", configResult.Config["model"])
+	}
+}
+
 func TestRegisterNotificationHandlerCanDecodeTypedEvent(t *testing.T) {
 	requireCodex(t)
 
@@ -236,7 +273,7 @@ func TestRegisterNotificationHandlerCanDecodeTypedEvent(t *testing.T) {
 
 	select {
 	case event := <-received:
-		if len(event.Thread) == 0 {
+		if event.Thread.ID == "" {
 			t.Fatal("expected thread payload")
 		}
 	case <-ctx.Done():
