@@ -557,6 +557,53 @@ func TestSteerTurnWithRealCodex(t *testing.T) {
 	}
 }
 
+func TestInterruptTurnWithRealCodex(t *testing.T) {
+	requireCodex(t)
+
+	client, _ := startTestClient(t, false)
+	defer func() {
+		_ = client.Close()
+	}()
+
+	started, err := client.StartThread(context.Background(), ThreadStartParams{})
+	if err != nil {
+		t.Fatalf("StartThread returned error: %v", err)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 90*time.Second)
+	defer cancel()
+
+	startTurnResult, err := client.StartTurn(ctx, TurnStartParams{
+		ThreadID: started.Thread.ID,
+		Input: []TurnStartInputItem{
+			{
+				"type": "text",
+				"text": "Inspect every Go file in the current repository, summarize the package structure in detail, and include concrete file examples before giving a final answer.",
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("StartTurn returned error: %v", err)
+	}
+	if startTurnResult == nil || startTurnResult.Turn.ID == "" {
+		t.Fatalf("expected active turn response: %#v", startTurnResult)
+	}
+
+	interruptResult, err := client.InterruptTurn(ctx, TurnInterruptParams{
+		ThreadID: started.Thread.ID,
+		TurnID:   startTurnResult.Turn.ID,
+	})
+	if err != nil {
+		if !strings.Contains(err.Error(), "no active turn to interrupt") && !strings.Contains(err.Error(), "turn not active") {
+			t.Fatalf("InterruptTurn returned unexpected error: %v", err)
+		}
+		return
+	}
+	if interruptResult == nil {
+		t.Fatal("expected non-nil interrupt result")
+	}
+}
+
 func TestProcessExitReturnsErrorWhenRestartDisabled(t *testing.T) {
 	requireCodex(t)
 
@@ -881,6 +928,11 @@ func TestCoreTypeDecoding(t *testing.T) {
 	}
 	if turnSteerResult.TurnID != "turn_started" {
 		t.Fatalf("unexpected turn steer result: %#v", turnSteerResult)
+	}
+
+	var turnInterruptResult TurnInterruptResult
+	if err := json.Unmarshal([]byte(`{}`), &turnInterruptResult); err != nil {
+		t.Fatalf("unmarshal turn interrupt result: %v", err)
 	}
 }
 
