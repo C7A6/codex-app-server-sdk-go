@@ -102,6 +102,26 @@ func TestListModelsWithRealCodex(t *testing.T) {
 	}
 }
 
+func TestStartThreadWithRealCodex(t *testing.T) {
+	requireCodex(t)
+
+	client, _ := startTestClient(t, false)
+	defer func() {
+		_ = client.Close()
+	}()
+
+	result, err := client.StartThread(context.Background(), ThreadStartParams{})
+	if err != nil {
+		t.Fatalf("StartThread returned error: %v", err)
+	}
+	if result == nil || result.Thread.ID == "" {
+		t.Fatalf("expected thread in response: %#v", result)
+	}
+	if result.Model == "" || result.ModelProvider == "" || result.Cwd == "" {
+		t.Fatalf("expected resolved thread defaults: %#v", result)
+	}
+}
+
 func TestProcessExitReturnsErrorWhenRestartDisabled(t *testing.T) {
 	requireCodex(t)
 
@@ -278,6 +298,24 @@ func TestCoreTypeDecoding(t *testing.T) {
 	}
 	if len(modelListResult.Data) != 1 || modelListResult.Data[0].ID != "gpt-5.4" {
 		t.Fatalf("unexpected model list result: %#v", modelListResult)
+	}
+
+	var threadStartResult ThreadStartResult
+	if err := json.Unmarshal([]byte(`{
+		"approvalPolicy":"never",
+		"approvalsReviewer":"user",
+		"cwd":"/tmp",
+		"model":"gpt-5.4",
+		"modelProvider":"openai",
+		"reasoningEffort":"medium",
+		"sandbox":"workspace-write",
+		"serviceTier":"fast",
+		"thread":{"id":"thr_123","status":{"type":"idle"}}
+	}`), &threadStartResult); err != nil {
+		t.Fatalf("unmarshal thread start result: %v", err)
+	}
+	if threadStartResult.Thread.ID != "thr_123" || threadStartResult.Model != "gpt-5.4" {
+		t.Fatalf("unexpected thread start result: %#v", threadStartResult)
 	}
 }
 
