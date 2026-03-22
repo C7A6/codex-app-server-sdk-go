@@ -2,6 +2,7 @@
 
 ## CORE PROTOCOLS (STRICT ADHERENCE REQUIRED)
 
+* **PROJECT LAYOUT**: This project STRICTLY FOLLOWING "go standard layout"
 * **ROADMAP VERSIONING**: The version of the Roadmap MUST strictly synchronize with the output of `codex --version`.
 * **DOCUMENTATION LANGUAGE**: All generated documentation and communication MUST be authored exclusively in **ENGLISH**.
 * **TASK EXECUTION LIMIT**: You MUST process exactly **ONE (1) TODO item** from `ROADMAP.md` per turn. Do NOT attempt to consolidate multiple tasks into a single turn unless explicitly authorized by the user.
