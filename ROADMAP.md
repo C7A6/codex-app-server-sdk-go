@@ -80,7 +80,7 @@
 
 - [x] `ListSkills`: Why UIs may need to show skills available for one or more working directories. How call `skills/list` with cwd lists, reload flags, and extra user roots.
 - [x] `WriteSkillsConfig`: Why users need SDK support for enabling or disabling skills. How call `skills/config/write` with path-based enablement changes.
-- [ ] `ListPlugins`: Why clients may need marketplace and auth policy metadata for plugins. How call `plugin/list` and decode marketplace and plugin state data.
+- [x] `ListPlugins`: Why clients may need marketplace and auth policy metadata for plugins. How call `plugin/list` and decode marketplace and plugin state data.
 - [ ] `ReadPlugin`: Why callers may need detailed metadata for one plugin. How call `plugin/read` with marketplace path and plugin name and decode bundled assets.
 - [ ] `ListApps`: Why connector UIs need a typed catalog of available apps. How call `app/list` with pagination and decode accessibility and enabled fields.
 - [ ] `StartMCPOAuthLogin`: Why MCP servers may require an OAuth bootstrap flow. How call `mcpServer/oauth/login` and return the authorization URL and login context.
