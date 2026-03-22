@@ -473,6 +473,36 @@ func TestRollbackThreadWithRealCodex(t *testing.T) {
 	}
 }
 
+func TestStartTurnWithRealCodex(t *testing.T) {
+	requireCodex(t)
+
+	client, _ := startTestClient(t, false)
+	defer func() {
+		_ = client.Close()
+	}()
+
+	started, err := client.StartThread(context.Background(), ThreadStartParams{})
+	if err != nil {
+		t.Fatalf("StartThread returned error: %v", err)
+	}
+
+	result, err := client.StartTurn(context.Background(), TurnStartParams{
+		ThreadID: started.Thread.ID,
+		Input: []TurnStartInputItem{
+			{
+				"type": "text",
+				"text": "hello from start turn test",
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("StartTurn returned error: %v", err)
+	}
+	if result == nil || result.Turn.ID == "" {
+		t.Fatalf("expected turn in response: %#v", result)
+	}
+}
+
 func TestProcessExitReturnsErrorWhenRestartDisabled(t *testing.T) {
 	requireCodex(t)
 
@@ -780,6 +810,16 @@ func TestCoreTypeDecoding(t *testing.T) {
 	if threadRollbackResult.Thread.ID != "thr_rollback" || len(threadRollbackResult.Thread.Turns) != 1 || threadRollbackResult.Thread.Turns[0].ID != "turn_1" {
 		t.Fatalf("unexpected thread rollback result: %#v", threadRollbackResult)
 	}
+
+	var turnStartResult TurnStartResult
+	if err := json.Unmarshal([]byte(`{
+		"turn":{"id":"turn_started","status":"inProgress"}
+	}`), &turnStartResult); err != nil {
+		t.Fatalf("unmarshal turn start result: %v", err)
+	}
+	if turnStartResult.Turn.ID != "turn_started" || turnStartResult.Turn.Status != "inProgress" {
+		t.Fatalf("unexpected turn start result: %#v", turnStartResult)
+	}
 }
 
 func TestRegisterNotificationHandlerCanDecodeTypedEvent(t *testing.T) {
@@ -908,19 +948,20 @@ func waitForCompletedTurn(t *testing.T, client *Client, threadID string, text st
 	ctx, cancel := context.WithTimeout(context.Background(), 90*time.Second)
 	defer cancel()
 
-	var turnStartResult struct {
-		Turn Turn `json:"turn"`
-	}
-	if err := client.Call(ctx, "turn/start", map[string]any{
-		"threadId": threadID,
-		"input": []map[string]any{
+	turnStartResult, err := client.StartTurn(ctx, TurnStartParams{
+		ThreadID: threadID,
+		Input: []TurnStartInputItem{
 			{
 				"type": "text",
 				"text": text,
 			},
 		},
-	}, &turnStartResult); err != nil {
-		t.Fatalf("turn/start returned error: %v", err)
+	})
+	if err != nil {
+		t.Fatalf("StartTurn returned error: %v", err)
+	}
+	if turnStartResult == nil || turnStartResult.Turn.ID == "" {
+		t.Fatalf("expected started turn response: %#v", turnStartResult)
 	}
 
 	select {
