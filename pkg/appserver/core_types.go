@@ -69,6 +69,27 @@ type CommandExecResult struct {
 	Stderr   string `json:"stderr"`
 }
 
+type CommandExecTerminalSize struct {
+	Cols uint16 `json:"cols"`
+	Rows uint16 `json:"rows"`
+}
+
+type CommandExecParams struct {
+	Command            []string                 `json:"command"`
+	Cwd                *string                  `json:"cwd,omitempty"`
+	DisableOutputCap   bool                     `json:"disableOutputCap,omitempty"`
+	DisableTimeout     bool                     `json:"disableTimeout,omitempty"`
+	Env                map[string]*string       `json:"env,omitempty"`
+	OutputBytesCap     *uint64                  `json:"outputBytesCap,omitempty"`
+	ProcessID          *string                  `json:"processId,omitempty"`
+	SandboxPolicy      any                      `json:"sandboxPolicy,omitempty"`
+	Size               *CommandExecTerminalSize `json:"size,omitempty"`
+	StreamStdin        bool                     `json:"streamStdin,omitempty"`
+	StreamStdoutStderr bool                     `json:"streamStdoutStderr,omitempty"`
+	TimeoutMs          *int64                   `json:"timeoutMs,omitempty"`
+	TTY                bool                     `json:"tty,omitempty"`
+}
+
 type ConfigValueMap map[string]any
 
 type ConfigLayer map[string]any

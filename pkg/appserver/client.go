@@ -344,6 +344,14 @@ func (c *Client) StartReview(ctx context.Context, params ReviewStartParams) (*Re
 	return result, nil
 }
 
+func (c *Client) ExecCommand(ctx context.Context, params CommandExecParams) (*CommandExecResult, error) {
+	result := &CommandExecResult{}
+	if err := c.Call(ctx, "command/exec", params, result); err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
 func (c *Client) Close() error {
 	c.mu.Lock()
 	if c.closed {
