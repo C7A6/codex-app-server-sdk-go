@@ -400,6 +400,14 @@ func (c *Client) ListPlugins(ctx context.Context, params PluginListParams) (*Plu
 	return result, nil
 }
 
+func (c *Client) ReadPlugin(ctx context.Context, params PluginReadParams) (*PluginReadResult, error) {
+	result := &PluginReadResult{}
+	if err := c.Call(ctx, "plugin/read", params, result); err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
 func (c *Client) Close() error {
 	c.mu.Lock()
 	if c.closed {

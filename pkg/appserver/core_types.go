@@ -245,6 +245,40 @@ type PluginListResult struct {
 	RemoteSyncError *string                  `json:"remoteSyncError,omitempty"`
 }
 
+type PluginReadParams struct {
+	MarketplacePath string `json:"marketplacePath"`
+	PluginName      string `json:"pluginName"`
+}
+
+type AppSummary struct {
+	Description *string `json:"description,omitempty"`
+	ID          string  `json:"id"`
+	InstallURL  *string `json:"installUrl,omitempty"`
+	Name        string  `json:"name"`
+}
+
+type SkillSummary struct {
+	Description      string          `json:"description"`
+	Interface        *SkillInterface `json:"interface,omitempty"`
+	Name             string          `json:"name"`
+	Path             string          `json:"path"`
+	ShortDescription *string         `json:"shortDescription,omitempty"`
+}
+
+type PluginDetail struct {
+	Apps            []AppSummary   `json:"apps"`
+	Description     *string        `json:"description,omitempty"`
+	MarketplaceName string         `json:"marketplaceName"`
+	MarketplacePath string         `json:"marketplacePath"`
+	MCPServers      []string       `json:"mcpServers"`
+	Skills          []SkillSummary `json:"skills"`
+	Summary         PluginSummary  `json:"summary"`
+}
+
+type PluginReadResult struct {
+	Plugin PluginDetail `json:"plugin"`
+}
+
 type ModelListParams struct {
 	Cursor        *string `json:"cursor,omitempty"`
 	IncludeHidden *bool   `json:"includeHidden,omitempty"`
