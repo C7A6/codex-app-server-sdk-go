@@ -53,7 +53,7 @@
 - [x] `ResumeThread`: Why clients need to continue an existing conversation. How call `thread/resume` with a thread ID and return the resumed thread state.
 - [x] `ForkThread`: Why callers may branch an existing conversation into a new history line. How call `thread/fork` and decode the new thread descriptor.
 - [x] `ReadThread`: Why stored threads must be readable without loading them into memory. How call `thread/read` and support the `includeTurns` flag.
-- [ ] `ListThreads`: Why clients need pagination and filtering for thread history UIs. How call `thread/list` with cursor, limit, sort, provider, source, archive, and cwd filters.
+- [x] `ListThreads`: Why clients need pagination and filtering for thread history UIs. How call `thread/list` with cursor, limit, sort, provider, source, archive, and cwd filters.
 - [ ] `ListLoadedThreads`: Why callers may need to inspect in-memory thread state. How call `thread/loaded/list` and decode loaded thread IDs.
 - [ ] `SetThreadName`: Why a thread needs a user-facing display name. How call `thread/name/set` with thread identity and the desired label.
 - [ ] `ArchiveThread`: Why inactive threads should be removable from the active list without deletion. How call `thread/archive` and treat `{}` as success.
