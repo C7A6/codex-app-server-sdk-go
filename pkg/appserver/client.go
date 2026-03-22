@@ -416,6 +416,14 @@ func (c *Client) ListApps(ctx context.Context, params AppsListParams) (*AppsList
 	return result, nil
 }
 
+func (c *Client) StartMCPOAuthLogin(ctx context.Context, params MCPOAuthLoginParams) (*MCPOAuthLoginResult, error) {
+	result := &MCPOAuthLoginResult{}
+	if err := c.Call(ctx, "mcpServer/oauth/login", params, result); err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
 func (c *Client) Close() error {
 	c.mu.Lock()
 	if c.closed {

@@ -341,6 +341,16 @@ type AppsListResult struct {
 	NextCursor *string   `json:"nextCursor,omitempty"`
 }
 
+type MCPOAuthLoginParams struct {
+	Name        string   `json:"name"`
+	Scopes      []string `json:"scopes,omitempty"`
+	TimeoutSecs *int64   `json:"timeoutSecs,omitempty"`
+}
+
+type MCPOAuthLoginResult struct {
+	AuthorizationURL string `json:"authorizationUrl"`
+}
+
 type ModelListParams struct {
 	Cursor        *string `json:"cursor,omitempty"`
 	IncludeHidden *bool   `json:"includeHidden,omitempty"`
