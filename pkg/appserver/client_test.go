@@ -300,6 +300,59 @@ func TestSetThreadNameWithRealCodex(t *testing.T) {
 	}
 }
 
+func TestArchiveThreadWithRealCodex(t *testing.T) {
+	requireCodex(t)
+
+	client, _ := startTestClient(t, false)
+	started := createPersistedThread(t, client)
+	defer func() {
+		_ = client.Close()
+	}()
+
+	result, err := client.ArchiveThread(context.Background(), ThreadArchiveParams{
+		ThreadID: started.Thread.ID,
+	})
+	if err != nil {
+		t.Fatalf("ArchiveThread returned error: %v", err)
+	}
+	if result == nil {
+		t.Fatal("expected non-nil archive result")
+	}
+
+	limit := uint32(50)
+	activeArchived := false
+	activeList, err := client.ListThreads(context.Background(), ThreadListParams{
+		Archived: &activeArchived,
+		Cwd:      &started.Cwd,
+		Limit:    &limit,
+	})
+	if err != nil {
+		t.Fatalf("ListThreads active returned error: %v", err)
+	}
+	for _, thread := range activeList.Data {
+		if thread.ID == started.Thread.ID {
+			t.Fatalf("expected archived thread %q to be absent from active list", started.Thread.ID)
+		}
+	}
+
+	archived := true
+	archivedList, err := client.ListThreads(context.Background(), ThreadListParams{
+		Archived: &archived,
+		Cwd:      &started.Cwd,
+		Limit:    &limit,
+	})
+	if err != nil {
+		t.Fatalf("ListThreads archived returned error: %v", err)
+	}
+	for _, thread := range archivedList.Data {
+		if thread.ID == started.Thread.ID {
+			return
+		}
+	}
+
+	t.Fatalf("expected archived thread %q in archived list, got %#v", started.Thread.ID, archivedList.Data)
+}
+
 func TestProcessExitReturnsErrorWhenRestartDisabled(t *testing.T) {
 	requireCodex(t)
 
@@ -564,6 +617,11 @@ func TestCoreTypeDecoding(t *testing.T) {
 	var threadSetNameResult ThreadSetNameResult
 	if err := json.Unmarshal([]byte(`{}`), &threadSetNameResult); err != nil {
 		t.Fatalf("unmarshal thread set name result: %v", err)
+	}
+
+	var threadArchiveResult ThreadArchiveResult
+	if err := json.Unmarshal([]byte(`{}`), &threadArchiveResult); err != nil {
+		t.Fatalf("unmarshal thread archive result: %v", err)
 	}
 }
 
