@@ -279,6 +279,68 @@ type PluginReadResult struct {
 	Plugin PluginDetail `json:"plugin"`
 }
 
+type AppsListParams struct {
+	Cursor       *string `json:"cursor,omitempty"`
+	ForceRefetch *bool   `json:"forceRefetch,omitempty"`
+	Limit        *uint32 `json:"limit,omitempty"`
+	ThreadID     *string `json:"threadId,omitempty"`
+}
+
+type AppBranding struct {
+	Category          *string `json:"category,omitempty"`
+	Developer         *string `json:"developer,omitempty"`
+	IsDiscoverableApp bool    `json:"isDiscoverableApp"`
+	PrivacyPolicy     *string `json:"privacyPolicy,omitempty"`
+	TermsOfService    *string `json:"termsOfService,omitempty"`
+	Website           *string `json:"website,omitempty"`
+}
+
+type AppReview struct {
+	Status string `json:"status"`
+}
+
+type AppScreenshot struct {
+	FileID     *string `json:"fileId,omitempty"`
+	URL        *string `json:"url,omitempty"`
+	UserPrompt string  `json:"userPrompt"`
+}
+
+type AppMetadata struct {
+	Categories                 []string        `json:"categories,omitempty"`
+	Developer                  *string         `json:"developer,omitempty"`
+	FirstPartyRequiresInstall  *bool           `json:"firstPartyRequiresInstall,omitempty"`
+	FirstPartyType             *string         `json:"firstPartyType,omitempty"`
+	Review                     *AppReview      `json:"review,omitempty"`
+	Screenshots                []AppScreenshot `json:"screenshots,omitempty"`
+	SEODescription             *string         `json:"seoDescription,omitempty"`
+	ShowInComposerWhenUnlinked *bool           `json:"showInComposerWhenUnlinked,omitempty"`
+	SubCategories              []string        `json:"subCategories,omitempty"`
+	Version                    *string         `json:"version,omitempty"`
+	VersionID                  *string         `json:"versionId,omitempty"`
+	VersionNotes               *string         `json:"versionNotes,omitempty"`
+}
+
+type AppInfo struct {
+	AppMetadata         *AppMetadata      `json:"appMetadata,omitempty"`
+	Branding            *AppBranding      `json:"branding,omitempty"`
+	Description         *string           `json:"description,omitempty"`
+	DistributionChannel *string           `json:"distributionChannel,omitempty"`
+	ID                  string            `json:"id"`
+	InstallURL          *string           `json:"installUrl,omitempty"`
+	IsAccessible        bool              `json:"isAccessible"`
+	IsEnabled           bool              `json:"isEnabled"`
+	Labels              map[string]string `json:"labels,omitempty"`
+	LogoURL             *string           `json:"logoUrl,omitempty"`
+	LogoURLDark         *string           `json:"logoUrlDark,omitempty"`
+	Name                string            `json:"name"`
+	PluginDisplayNames  []string          `json:"pluginDisplayNames,omitempty"`
+}
+
+type AppsListResult struct {
+	Data       []AppInfo `json:"data"`
+	NextCursor *string   `json:"nextCursor,omitempty"`
+}
+
 type ModelListParams struct {
 	Cursor        *string `json:"cursor,omitempty"`
 	IncludeHidden *bool   `json:"includeHidden,omitempty"`

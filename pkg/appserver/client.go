@@ -408,6 +408,14 @@ func (c *Client) ReadPlugin(ctx context.Context, params PluginReadParams) (*Plug
 	return result, nil
 }
 
+func (c *Client) ListApps(ctx context.Context, params AppsListParams) (*AppsListResult, error) {
+	result := &AppsListResult{}
+	if err := c.Call(ctx, "app/list", params, result); err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
 func (c *Client) Close() error {
 	c.mu.Lock()
 	if c.closed {
