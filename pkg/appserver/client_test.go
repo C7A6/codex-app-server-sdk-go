@@ -948,6 +948,51 @@ func TestListPluginsWithRealCodex(t *testing.T) {
 	}
 }
 
+func TestReadPluginWithRealCodex(t *testing.T) {
+	requireCodex(t)
+
+	client, _ := startTestClient(t, false)
+	defer func() {
+		_ = client.Close()
+	}()
+
+	cwd, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("Getwd returned error: %v", err)
+	}
+
+	listResult, err := client.ListPlugins(context.Background(), PluginListParams{
+		Cwds: []string{cwd},
+	})
+	if err != nil {
+		t.Fatalf("ListPlugins returned error: %v", err)
+	}
+
+	var marketplacePath string
+	var pluginName string
+	for _, marketplace := range listResult.Marketplaces {
+		if len(marketplace.Plugins) > 0 {
+			marketplacePath = marketplace.Path
+			pluginName = marketplace.Plugins[0].Name
+			break
+		}
+	}
+	if marketplacePath == "" || pluginName == "" {
+		t.Skip("no readable plugin available in current environment")
+	}
+
+	readResult, err := client.ReadPlugin(context.Background(), PluginReadParams{
+		MarketplacePath: marketplacePath,
+		PluginName:      pluginName,
+	})
+	if err != nil {
+		t.Fatalf("ReadPlugin returned error: %v", err)
+	}
+	if readResult == nil || readResult.Plugin.Summary.Name == "" || readResult.Plugin.MarketplacePath == "" {
+		t.Fatalf("expected plugin detail payload: %#v", readResult)
+	}
+}
+
 func TestProcessExitReturnsErrorWhenRestartDisabled(t *testing.T) {
 	requireCodex(t)
 
@@ -1366,6 +1411,31 @@ func TestCoreTypeDecoding(t *testing.T) {
 	}
 	if len(pluginListResult.Marketplaces) != 1 || len(pluginListResult.Marketplaces[0].Plugins) != 1 || pluginListResult.Marketplaces[0].Plugins[0].Name != "demo" {
 		t.Fatalf("unexpected plugin list result: %#v", pluginListResult)
+	}
+
+	var pluginReadResult PluginReadResult
+	if err := json.Unmarshal([]byte(`{
+		"plugin":{
+			"marketplaceName":"official",
+			"marketplacePath":"/tmp/marketplace",
+			"mcpServers":["demo-server"],
+			"apps":[{"id":"app_1","name":"Demo App"}],
+			"skills":[{"name":"demo-skill","description":"Demo skill","path":"/tmp/skill"}],
+			"summary":{
+				"id":"plugin_1",
+				"name":"demo",
+				"authPolicy":"ON_USE",
+				"installPolicy":"AVAILABLE",
+				"installed":false,
+				"enabled":false,
+				"source":{"type":"local","path":"/tmp/plugin"}
+			}
+		}
+	}`), &pluginReadResult); err != nil {
+		t.Fatalf("unmarshal plugin read result: %v", err)
+	}
+	if pluginReadResult.Plugin.Summary.Name != "demo" || pluginReadResult.Plugin.MarketplaceName != "official" {
+		t.Fatalf("unexpected plugin read result: %#v", pluginReadResult)
 	}
 }
 
