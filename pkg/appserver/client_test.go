@@ -353,6 +353,51 @@ func TestArchiveThreadWithRealCodex(t *testing.T) {
 	t.Fatalf("expected archived thread %q in archived list, got %#v", started.Thread.ID, archivedList.Data)
 }
 
+func TestUnarchiveThreadWithRealCodex(t *testing.T) {
+	requireCodex(t)
+
+	client, _ := startTestClient(t, false)
+	started := createPersistedThread(t, client)
+	defer func() {
+		_ = client.Close()
+	}()
+
+	_, err := client.ArchiveThread(context.Background(), ThreadArchiveParams{
+		ThreadID: started.Thread.ID,
+	})
+	if err != nil {
+		t.Fatalf("ArchiveThread returned error: %v", err)
+	}
+
+	result, err := client.UnarchiveThread(context.Background(), ThreadUnarchiveParams{
+		ThreadID: started.Thread.ID,
+	})
+	if err != nil {
+		t.Fatalf("UnarchiveThread returned error: %v", err)
+	}
+	if result == nil || result.Thread.ID != started.Thread.ID {
+		t.Fatalf("expected unarchived thread id %q, got %#v", started.Thread.ID, result)
+	}
+
+	limit := uint32(50)
+	activeArchived := false
+	activeList, err := client.ListThreads(context.Background(), ThreadListParams{
+		Archived: &activeArchived,
+		Cwd:      &started.Cwd,
+		Limit:    &limit,
+	})
+	if err != nil {
+		t.Fatalf("ListThreads active returned error: %v", err)
+	}
+	for _, thread := range activeList.Data {
+		if thread.ID == started.Thread.ID {
+			return
+		}
+	}
+
+	t.Fatalf("expected unarchived thread %q in active list, got %#v", started.Thread.ID, activeList.Data)
+}
+
 func TestProcessExitReturnsErrorWhenRestartDisabled(t *testing.T) {
 	requireCodex(t)
 
@@ -622,6 +667,16 @@ func TestCoreTypeDecoding(t *testing.T) {
 	var threadArchiveResult ThreadArchiveResult
 	if err := json.Unmarshal([]byte(`{}`), &threadArchiveResult); err != nil {
 		t.Fatalf("unmarshal thread archive result: %v", err)
+	}
+
+	var threadUnarchiveResult ThreadUnarchiveResult
+	if err := json.Unmarshal([]byte(`{
+		"thread":{"id":"thr_restored","status":{"type":"idle"}}
+	}`), &threadUnarchiveResult); err != nil {
+		t.Fatalf("unmarshal thread unarchive result: %v", err)
+	}
+	if threadUnarchiveResult.Thread.ID != "thr_restored" || threadUnarchiveResult.Thread.Status == nil || threadUnarchiveResult.Thread.Status.Type != "idle" {
+		t.Fatalf("unexpected thread unarchive result: %#v", threadUnarchiveResult)
 	}
 }
 
