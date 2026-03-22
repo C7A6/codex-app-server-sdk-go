@@ -94,14 +94,14 @@
 - [x] `BatchWriteConfig`: Why multiple config edits should be applied atomically. How call `config/batchWrite` and decode the committed configuration response.
 - [x] `ReadConfigRequirements`: Why enterprise clients may need requirement and policy metadata. How call `configRequirements/read` and decode allow-lists and residency constraints.
 - [x] `DetectExternalAgentConfig`: Why migration tooling needs to discover importable external-agent artifacts. How call `externalAgentConfig/detect` with home and cwd controls.
-- [ ] `ImportExternalAgentConfig`: Why detected external-agent settings should be importable through the SDK. How call `externalAgentConfig/import` with explicit migration items.
-- [ ] `ReadFile`: Why the app-server exposes filesystem access over JSON-RPC v2 APIs. How call `fs/readFile` with an absolute path and decode file contents.
-- [ ] `WriteFile`: Why clients need remote file writes through the app-server filesystem surface. How call `fs/writeFile` with absolute path and content payloads.
-- [ ] `CreateDirectory`: Why callers may need to prepare filesystem paths before writing files. How call `fs/createDirectory` with an absolute path and creation options.
-- [ ] `GetMetadata`: Why clients may need file type and stat metadata before operating on paths. How call `fs/getMetadata` and decode the metadata payload.
-- [ ] `ReadDirectory`: Why directory listings are needed for file browser integrations. How call `fs/readDirectory` with an absolute path and decode child entries.
-- [ ] `RemovePath`: Why SDK consumers need a deletion API for filesystem automation. How call `fs/remove` with an absolute path and removal options.
-- [ ] `CopyPath`: Why file duplication should be available through the same transport. How call `fs/copy` with absolute source and destination paths.
+- [x] `ImportExternalAgentConfig`: Why detected external-agent settings should be importable through the SDK. How call `externalAgentConfig/import` with explicit migration items.
+- [x] `ReadFile`: Why the app-server exposes filesystem access over JSON-RPC v2 APIs. How call `fs/readFile` with an absolute path and decode file contents.
+- [x] `WriteFile`: Why clients need remote file writes through the app-server filesystem surface. How call `fs/writeFile` with absolute path and content payloads.
+- [x] `CreateDirectory`: Why callers may need to prepare filesystem paths before writing files. How call `fs/createDirectory` with an absolute path and creation options.
+- [x] `GetMetadata`: Why clients may need file type and stat metadata before operating on paths. How call `fs/getMetadata` and decode the metadata payload.
+- [x] `ReadDirectory`: Why directory listings are needed for file browser integrations. How call `fs/readDirectory` with an absolute path and decode child entries.
+- [x] `RemovePath`: Why SDK consumers need a deletion API for filesystem automation. How call `fs/remove` with an absolute path and removal options.
+- [x] `CopyPath`: Why file duplication should be available through the same transport. How call `fs/copy` with absolute source and destination paths.
 
 ### Auth And Account
 
