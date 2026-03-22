@@ -112,6 +112,7 @@ type StartOptions struct {
 	ClientInfo       ClientInfo
 	Capabilities     *Capabilities
 	RestartOnFailure bool
+	RestartPolicy    RestartPolicy
 }
 
 type Notification struct {
@@ -128,6 +129,14 @@ func (n Notification) DecodeParams(v any) error {
 
 type NotificationHandler func(context.Context, Notification)
 type ToolRequestUserInputHandler func(context.Context, ToolRequestUserInputParams) (*ToolRequestUserInputResult, error)
+type ProcessExitHandler func(error)
+
+type RestartPolicy string
+
+const (
+	RestartPolicyNever  RestartPolicy = "never"
+	RestartPolicyAlways RestartPolicy = "always"
+)
 
 type Client struct {
 	mu                   sync.Mutex
@@ -136,7 +145,12 @@ type Client struct {
 	closed               bool
 	nextHandlerID        uint64
 	notificationHandlers map[string]map[uint64]NotificationHandler
+	processExitHandlers  map[uint64]ProcessExitHandler
 	toolRequestHandler   ToolRequestUserInputHandler
+}
+
+func NewClient(ctx context.Context, opts StartOptions) (*Client, *InitializeResult, error) {
+	return StartStdio(ctx, opts)
 }
 
 func StartStdio(ctx context.Context, opts StartOptions) (*Client, *InitializeResult, error) {
@@ -147,6 +161,7 @@ func StartStdio(ctx context.Context, opts StartOptions) (*Client, *InitializeRes
 	client := &Client{
 		opts:                 opts,
 		notificationHandlers: make(map[string]map[uint64]NotificationHandler),
+		processExitHandlers:  make(map[uint64]ProcessExitHandler),
 	}
 
 	sess, result, err := startSession(ctx, client, opts)
@@ -156,6 +171,32 @@ func StartStdio(ctx context.Context, opts StartOptions) (*Client, *InitializeRes
 	client.session = sess
 
 	return client, result, nil
+}
+
+func Initialize(ctx context.Context, conn *jsonrpc2.Conn, params InitializeParams) (*InitializeResult, error) {
+	result := &InitializeResult{}
+	if err := conn.Call(ctx, "initialize", params, result); err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
+func Initialized(ctx context.Context, conn *jsonrpc2.Conn) error {
+	return conn.Notify(ctx, "initialized", struct{}{})
+}
+
+func (o StartOptions) SetExperimentalAPI(enabled bool) StartOptions {
+	capabilities := o.capabilities()
+	capabilities.ExperimentalAPI = enabled
+	o.Capabilities = capabilities
+	return o
+}
+
+func (o StartOptions) SetNotificationOptOut(methods ...string) StartOptions {
+	capabilities := o.capabilities()
+	capabilities.OptOutNotificationMethods = append([]string(nil), methods...)
+	o.Capabilities = capabilities
+	return o
 }
 
 func (c *Client) RegisterNotificationHandler(method string, handler NotificationHandler) (func(), error) {
@@ -206,6 +247,29 @@ func (c *Client) RegisterToolRequestUserInputHandler(handler ToolRequestUserInpu
 
 	c.toolRequestHandler = handler
 	return nil
+}
+
+func (c *Client) OnProcessExit(handler ProcessExitHandler) (func(), error) {
+	if handler == nil {
+		return nil, errNilHandler
+	}
+
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	if c.closed {
+		return nil, ErrClientClosed
+	}
+
+	c.nextHandlerID++
+	handlerID := c.nextHandlerID
+	c.processExitHandlers[handlerID] = handler
+
+	return func() {
+		c.mu.Lock()
+		defer c.mu.Unlock()
+		delete(c.processExitHandlers, handlerID)
+	}, nil
 }
 
 func (c *Client) Call(ctx context.Context, method string, params, result any) error {
@@ -640,7 +704,7 @@ func (c *Client) call(ctx context.Context, invoke func(*session) error) error {
 			return err
 		}
 
-		if !c.opts.RestartOnFailure {
+		if !c.opts.restartEnabled() {
 			if sess.done() {
 				return sess.processExitError()
 			}
@@ -669,7 +733,7 @@ func (c *Client) activeSession(ctx context.Context) (*session, error) {
 		return c.session, nil
 	}
 
-	if c.session != nil && !c.opts.RestartOnFailure {
+	if c.session != nil && !c.opts.restartEnabled() {
 		return nil, c.session.processExitError()
 	}
 
@@ -728,13 +792,13 @@ func startSession(ctx context.Context, client *Client, opts StartOptions) (*sess
 	}
 	conn := jsonrpc2.NewConn(ctx, jsonrpc2.NewPlainObjectStream(stdio), &clientHandler{client: client})
 
-	sess := newSession(cmd, conn, stdio)
+	sess := newSession(cmd, conn, stdio, client.dispatchProcessExit)
 
-	result := &InitializeResult{}
-	if err := conn.Call(ctx, "initialize", InitializeParams{
+	result, err := Initialize(ctx, conn, InitializeParams{
 		ClientInfo:   opts.ClientInfo,
 		Capabilities: opts.Capabilities,
-	}, result); err != nil {
+	})
+	if err != nil {
 		_ = sess.close()
 		if sess.done() {
 			return nil, nil, sess.processExitError()
@@ -742,7 +806,7 @@ func startSession(ctx context.Context, client *Client, opts StartOptions) (*sess
 		return nil, nil, err
 	}
 
-	if err := conn.Notify(ctx, "initialized", struct{}{}); err != nil {
+	if err := Initialized(ctx, conn); err != nil {
 		_ = sess.close()
 		if sess.done() {
 			return nil, nil, sess.processExitError()
@@ -764,14 +828,16 @@ type session struct {
 
 	mu      sync.RWMutex
 	exitErr error
+	onExit  func(error)
 }
 
-func newSession(cmd *exec.Cmd, conn *jsonrpc2.Conn, stdio io.ReadWriteCloser) *session {
+func newSession(cmd *exec.Cmd, conn *jsonrpc2.Conn, stdio io.ReadWriteCloser, onExit func(error)) *session {
 	sess := &session{
 		cmd:    cmd,
 		conn:   conn,
 		stdio:  stdio,
 		doneCh: make(chan struct{}),
+		onExit: onExit,
 	}
 
 	go func() {
@@ -801,8 +867,12 @@ func (s *session) setExit(err error) {
 	s.waitOnce.Do(func() {
 		s.mu.Lock()
 		s.exitErr = err
+		onExit := s.onExit
 		s.mu.Unlock()
 		close(s.doneCh)
+		if onExit != nil {
+			onExit(err)
+		}
 	})
 }
 
@@ -856,6 +926,42 @@ func (s *processStdio) Close() error {
 
 type clientHandler struct {
 	client *Client
+}
+
+func (o StartOptions) capabilities() *Capabilities {
+	if o.Capabilities == nil {
+		return &Capabilities{}
+	}
+
+	capabilities := *o.Capabilities
+	if capabilities.OptOutNotificationMethods != nil {
+		capabilities.OptOutNotificationMethods = append([]string(nil), capabilities.OptOutNotificationMethods...)
+	}
+	return &capabilities
+}
+
+func (o StartOptions) restartEnabled() bool {
+	switch o.RestartPolicy {
+	case RestartPolicyAlways:
+		return true
+	case RestartPolicyNever:
+		return false
+	default:
+		return o.RestartOnFailure
+	}
+}
+
+func (c *Client) dispatchProcessExit(err error) {
+	c.mu.Lock()
+	handlers := make([]ProcessExitHandler, 0, len(c.processExitHandlers))
+	for _, handler := range c.processExitHandlers {
+		handlers = append(handlers, handler)
+	}
+	c.mu.Unlock()
+
+	for _, handler := range handlers {
+		handler(err)
+	}
 }
 
 func (h *clientHandler) Handle(ctx context.Context, conn *jsonrpc2.Conn, req *jsonrpc2.Request) {

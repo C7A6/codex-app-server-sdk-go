@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"errors"
+	"io"
 	"os"
 	"os/exec"
 	"strings"
@@ -51,6 +52,72 @@ func TestStartStdioReturnsErrorWhenBinaryIsMissing(t *testing.T) {
 	})
 	if err == nil {
 		t.Fatal("expected missing binary error")
+	}
+}
+
+func TestNewClientInitializesConnection(t *testing.T) {
+	requireCodex(t)
+
+	client, result, err := NewClient(context.Background(), StartOptions{
+		ClientInfo: ClientInfo{
+			Name:    "sdk_test",
+			Title:   "SDK Test",
+			Version: "0.1.0",
+		},
+	})
+	if err != nil {
+		t.Fatalf("NewClient returned error: %v", err)
+	}
+	defer func() {
+		_ = client.Close()
+	}()
+
+	if result == nil || result.UserAgent == "" {
+		t.Fatalf("expected initialized result: %#v", result)
+	}
+}
+
+func TestInitializeAndInitializedWithRealCodex(t *testing.T) {
+	requireCodex(t)
+
+	conn, cleanup := startUninitializedTestConn(t)
+	defer cleanup()
+
+	result, err := Initialize(context.Background(), conn, InitializeParams{
+		ClientInfo: ClientInfo{
+			Name:    "sdk_test",
+			Title:   "SDK Test",
+			Version: "0.1.0",
+		},
+	})
+	if err != nil {
+		t.Fatalf("Initialize returned error: %v", err)
+	}
+	if result == nil || result.UserAgent == "" {
+		t.Fatalf("expected initialize result: %#v", result)
+	}
+
+	if err := Initialized(context.Background(), conn); err != nil {
+		t.Fatalf("Initialized returned error: %v", err)
+	}
+}
+
+func TestStartOptionsCapabilitySetters(t *testing.T) {
+	opts := StartOptions{}
+	opts = opts.SetExperimentalAPI(true)
+	opts = opts.SetNotificationOptOut("thread/updated", "item/updated")
+
+	if opts.Capabilities == nil {
+		t.Fatal("expected capabilities to be allocated")
+	}
+	if !opts.Capabilities.ExperimentalAPI {
+		t.Fatal("expected experimental api to be enabled")
+	}
+	if len(opts.Capabilities.OptOutNotificationMethods) != 2 {
+		t.Fatalf("expected notification opt-out methods: %#v", opts.Capabilities.OptOutNotificationMethods)
+	}
+	if opts.Capabilities.OptOutNotificationMethods[0] != "thread/updated" {
+		t.Fatalf("unexpected opt-out methods: %#v", opts.Capabilities.OptOutNotificationMethods)
 	}
 }
 
@@ -1576,6 +1643,71 @@ func TestProcessExitRestartsWhenEnabled(t *testing.T) {
 	}
 }
 
+func TestOnProcessExitReceivesProcessFailure(t *testing.T) {
+	requireCodex(t)
+
+	client, _ := startTestClient(t, false)
+	defer func() {
+		_ = client.Close()
+	}()
+
+	exitCh := make(chan error, 1)
+	unregister, err := client.OnProcessExit(func(err error) {
+		exitCh <- err
+	})
+	if err != nil {
+		t.Fatalf("OnProcessExit returned error: %v", err)
+	}
+	defer unregister()
+
+	killActiveProcess(t, client)
+
+	select {
+	case err := <-exitCh:
+		if err == nil {
+			t.Fatal("expected process exit error")
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("timed out waiting for process exit callback")
+	}
+}
+
+func TestRestartPolicyAlwaysOverridesLegacyRestartFlag(t *testing.T) {
+	requireCodex(t)
+
+	client, _, err := StartStdio(context.Background(), StartOptions{
+		ClientInfo: ClientInfo{
+			Name:    "sdk_test",
+			Title:   "SDK Test",
+			Version: "0.1.0",
+		},
+		RestartOnFailure: false,
+		RestartPolicy:    RestartPolicyAlways,
+	})
+	if err != nil {
+		t.Fatalf("StartStdio returned error: %v", err)
+	}
+	defer func() {
+		_ = client.Close()
+	}()
+
+	initialPID := currentPID(t, client)
+	killActiveProcess(t, client)
+
+	account, err := client.ReadAccount(context.Background(), AccountReadParams{RefreshToken: false})
+	if err != nil {
+		t.Fatalf("ReadAccount returned error after restart policy recovery: %v", err)
+	}
+	if account == nil {
+		t.Fatal("expected account result after restart")
+	}
+
+	restartedPID := currentPID(t, client)
+	if restartedPID == initialPID {
+		t.Fatalf("expected restarted process pid to change, got %d", restartedPID)
+	}
+}
+
 func TestRegisterNotificationHandlerReceivesThreadStarted(t *testing.T) {
 	requireCodex(t)
 
@@ -2345,6 +2477,48 @@ func requireCodex(t *testing.T) {
 	if _, err := exec.LookPath("codex"); err != nil {
 		t.Skipf("codex not found: %v", err)
 	}
+}
+
+func startUninitializedTestConn(t *testing.T) (*jsonrpc2.Conn, func()) {
+	t.Helper()
+
+	cmd := exec.CommandContext(context.Background(), "codex", "app-server")
+
+	stdin, err := cmd.StdinPipe()
+	if err != nil {
+		t.Fatalf("StdinPipe returned error: %v", err)
+	}
+
+	stdout, err := cmd.StdoutPipe()
+	if err != nil {
+		t.Fatalf("StdoutPipe returned error: %v", err)
+	}
+
+	cmd.Stderr = io.Discard
+	if err := cmd.Start(); err != nil {
+		t.Fatalf("cmd.Start returned error: %v", err)
+	}
+
+	stdio := &processStdio{
+		stdin:  stdin,
+		stdout: stdout,
+	}
+	handlerClient := &Client{
+		notificationHandlers: make(map[string]map[uint64]NotificationHandler),
+		processExitHandlers:  make(map[uint64]ProcessExitHandler),
+	}
+	conn := jsonrpc2.NewConn(context.Background(), jsonrpc2.NewPlainObjectStream(stdio), &clientHandler{client: handlerClient})
+
+	cleanup := func() {
+		_ = conn.Close()
+		_ = stdio.Close()
+		if cmd.Process != nil {
+			_ = cmd.Process.Kill()
+		}
+		_ = cmd.Wait()
+	}
+
+	return conn, cleanup
 }
 
 func startTestClient(t *testing.T, restartOnFailure bool) (*Client, *InitializeResult) {

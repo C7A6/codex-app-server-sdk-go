@@ -25,21 +25,21 @@
 
 ### Core Transport And Session
 
-- [ ] `NewClient`: Why expose a stable SDK entry point for stdio app-server sessions. How build and validate client configuration, then prepare the JSON-RPC connection wrapper.
-- [ ] `StartStdio`: Why start a local `codex app-server` process over stdio. How spawn `codex app-server`, wire stdin/stdout to `jsonrpc2`, and complete the initialization handshake.
-- [ ] `Close`: Why callers need deterministic process and connection shutdown. How close the JSON-RPC connection, close pipes, terminate the process, and wait for exit once.
-- [ ] `Call`: Why every request method should share one lifecycle-safe call path. How centralize session lookup, JSON-RPC request dispatch, and process-exit error translation.
-- [ ] `Notify`: Why notification sending should follow the same lifecycle rules as requests. How reuse the active session and forward notification payloads without response handling.
-- [ ] `OnProcessExit`: Why callers may need to observe unexpected process death. How expose a callback or channel that publishes process-level exit state.
-- [ ] `RestartPolicy`: Why integrations need configurable recovery after process crashes. How add options for no-restart, always-restart, or bounded retry behavior around session recreation.
-- [ ] `ProcessExitError`: Why protocol errors and process failures must be distinguished clearly. How wrap process exit status and expose `Unwrap` for downstream error inspection.
+- [x] `NewClient`: Why expose a stable SDK entry point for stdio app-server sessions. How build and validate client configuration, then prepare the JSON-RPC connection wrapper.
+- [x] `StartStdio`: Why start a local `codex app-server` process over stdio. How spawn `codex app-server`, wire stdin/stdout to `jsonrpc2`, and complete the initialization handshake.
+- [x] `Close`: Why callers need deterministic process and connection shutdown. How close the JSON-RPC connection, close pipes, terminate the process, and wait for exit once.
+- [x] `Call`: Why every request method should share one lifecycle-safe call path. How centralize session lookup, JSON-RPC request dispatch, and process-exit error translation.
+- [x] `Notify`: Why notification sending should follow the same lifecycle rules as requests. How reuse the active session and forward notification payloads without response handling.
+- [x] `OnProcessExit`: Why callers may need to observe unexpected process death. How expose a callback or channel that publishes process-level exit state.
+- [x] `RestartPolicy`: Why integrations need configurable recovery after process crashes. How add options for no-restart, always-restart, or bounded retry behavior around session recreation.
+- [x] `ProcessExitError`: Why protocol errors and process failures must be distinguished clearly. How wrap process exit status and expose `Unwrap` for downstream error inspection.
 
 ### Initialization And Capabilities
 
-- [ ] `Initialize`: Why some callers may want an explicit handshake API in addition to startup helpers. How send `initialize` with `clientInfo` and optional capabilities, then decode runtime metadata.
-- [ ] `Initialized`: Why the protocol requires an acknowledgement after `initialize`. How send the `initialized` notification once per connection after a successful handshake.
-- [ ] `SetExperimentalAPI`: Why some endpoints and fields are gated by `experimentalApi`. How add an option builder that toggles `initialize.params.capabilities.experimentalApi`.
-- [ ] `SetNotificationOptOut`: Why clients may want to suppress noisy notifications per connection. How add an option builder that fills `optOutNotificationMethods` exactly as documented.
+- [x] `Initialize`: Why some callers may want an explicit handshake API in addition to startup helpers. How send `initialize` with `clientInfo` and optional capabilities, then decode runtime metadata.
+- [x] `Initialized`: Why the protocol requires an acknowledgement after `initialize`. How send the `initialized` notification once per connection after a successful handshake.
+- [x] `SetExperimentalAPI`: Why some endpoints and fields are gated by `experimentalApi`. How add an option builder that toggles `initialize.params.capabilities.experimentalApi`.
+- [x] `SetNotificationOptOut`: Why clients may want to suppress noisy notifications per connection. How add an option builder that fills `optOutNotificationMethods` exactly as documented.
 
 ### Model Discovery
 
