@@ -995,6 +995,63 @@ func TestWriteConfigValueWithRealCodex(t *testing.T) {
 	}
 }
 
+func TestBatchWriteConfigWithRealCodex(t *testing.T) {
+	requireCodex(t)
+
+	tempDir := t.TempDir()
+	configHome := tempDir + "/codex-home"
+	if err := os.MkdirAll(configHome, 0o755); err != nil {
+		t.Fatalf("MkdirAll returned error: %v", err)
+	}
+
+	client, _, err := StartStdio(context.Background(), StartOptions{
+		ClientInfo: ClientInfo{
+			Name:    "sdk_test",
+			Title:   "SDK Test",
+			Version: "0.1.0",
+		},
+		Env: append(os.Environ(), "CODEX_HOME="+configHome),
+	})
+	if err != nil {
+		t.Fatalf("StartStdio returned error: %v", err)
+	}
+	defer func() {
+		_ = client.Close()
+	}()
+
+	configPath := configHome + "/config.toml"
+	if err := os.WriteFile(configPath, []byte("model = \"gpt-5.4\"\n"), 0o600); err != nil {
+		t.Fatalf("WriteFile returned error: %v", err)
+	}
+
+	result, err := client.BatchWriteConfig(context.Background(), ConfigBatchWriteParams{
+		Edits: []ConfigEdit{
+			{
+				KeyPath:       "model",
+				MergeStrategy: ConfigMergeStrategyReplace,
+				Value:         "gpt-5.4",
+			},
+			{
+				KeyPath:       "model_provider",
+				MergeStrategy: ConfigMergeStrategyUpsert,
+				Value:         "openai",
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("BatchWriteConfig returned error: %v", err)
+	}
+	if result == nil || result.FilePath == "" || result.Version == "" {
+		t.Fatalf("expected config batch write result metadata: %#v", result)
+	}
+	if result.Status != ConfigWriteStatusOK && result.Status != ConfigWriteStatusOKOverridden {
+		t.Fatalf("unexpected config batch write status: %#v", result)
+	}
+	if result.FilePath != configPath {
+		t.Fatalf("expected config path %q, got %#v", configPath, result)
+	}
+}
+
 func TestListPluginsWithRealCodex(t *testing.T) {
 	requireCodex(t)
 
@@ -1351,6 +1408,18 @@ func TestCoreTypeDecoding(t *testing.T) {
 	}
 	if configWriteResult.FilePath != "/tmp/config.toml" || configWriteResult.Status != ConfigWriteStatusOK || configWriteResult.Version != "v1" {
 		t.Fatalf("unexpected config write result: %#v", configWriteResult)
+	}
+
+	var configBatchWriteResult ConfigWriteResult
+	if err := json.Unmarshal([]byte(`{
+		"filePath":"/tmp/config.toml",
+		"status":"okOverridden",
+		"version":"v2"
+	}`), &configBatchWriteResult); err != nil {
+		t.Fatalf("unmarshal config batch write result: %v", err)
+	}
+	if configBatchWriteResult.FilePath != "/tmp/config.toml" || configBatchWriteResult.Status != ConfigWriteStatusOKOverridden || configBatchWriteResult.Version != "v2" {
+		t.Fatalf("unexpected config batch write result: %#v", configBatchWriteResult)
 	}
 
 	var modelListResult ModelListResult
