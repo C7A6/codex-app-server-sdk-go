@@ -248,3 +248,19 @@ type ThreadUnarchiveParams struct {
 type ThreadUnarchiveResult struct {
 	Thread Thread `json:"thread"`
 }
+
+type ThreadUnsubscribeParams struct {
+	ThreadID string `json:"threadId"`
+}
+
+type ThreadUnsubscribeStatus string
+
+const (
+	ThreadUnsubscribeStatusNotLoaded     ThreadUnsubscribeStatus = "notLoaded"
+	ThreadUnsubscribeStatusNotSubscribed ThreadUnsubscribeStatus = "notSubscribed"
+	ThreadUnsubscribeStatusUnsubscribed  ThreadUnsubscribeStatus = "unsubscribed"
+)
+
+type ThreadUnsubscribeResult struct {
+	Status ThreadUnsubscribeStatus `json:"status"`
+}

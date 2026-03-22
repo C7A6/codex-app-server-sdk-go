@@ -288,6 +288,14 @@ func (c *Client) UnarchiveThread(ctx context.Context, params ThreadUnarchivePara
 	return result, nil
 }
 
+func (c *Client) UnsubscribeThread(ctx context.Context, params ThreadUnsubscribeParams) (*ThreadUnsubscribeResult, error) {
+	result := &ThreadUnsubscribeResult{}
+	if err := c.Call(ctx, "thread/unsubscribe", params, result); err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
 func (c *Client) Close() error {
 	c.mu.Lock()
 	if c.closed {
