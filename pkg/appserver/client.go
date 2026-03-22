@@ -256,6 +256,14 @@ func (c *Client) ListThreads(ctx context.Context, params ThreadListParams) (*Thr
 	return result, nil
 }
 
+func (c *Client) ListLoadedThreads(ctx context.Context, params ThreadLoadedListParams) (*ThreadLoadedListResult, error) {
+	result := &ThreadLoadedListResult{}
+	if err := c.Call(ctx, "thread/loaded/list", params, result); err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
 func (c *Client) Close() error {
 	c.mu.Lock()
 	if c.closed {

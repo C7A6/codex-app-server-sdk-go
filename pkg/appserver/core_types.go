@@ -217,3 +217,13 @@ type ThreadListResult struct {
 	Data       []Thread `json:"data"`
 	NextCursor *string  `json:"nextCursor,omitempty"`
 }
+
+type ThreadLoadedListParams struct {
+	Cursor *string `json:"cursor,omitempty"`
+	Limit  *uint32 `json:"limit,omitempty"`
+}
+
+type ThreadLoadedListResult struct {
+	Data       []string `json:"data"`
+	NextCursor *string  `json:"nextCursor,omitempty"`
+}
