@@ -163,15 +163,15 @@ The SDK currently provides only low-level RPC methods, requiring 50+ lines of ev
 
 All server errors currently come back as generic errors, forcing developers to rely on `strings.Contains(err.Error(), ...)` string matching. Add structured error types based on JSON-RPC error codes.
 
-- [ ] `RPCError`: Struct containing JSON-RPC error code, message, and data. Enables `errors.As(err, &rpcErr)` pattern for server error discrimination.
-- [ ] `IsValidationError` / `IsNotInitializedError` / `IsRateLimitError`: Predicate helper functions for commonly encountered error patterns.
+- [x] `RPCError`: Struct containing JSON-RPC error code, message, and data. Enables `errors.As(err, &rpcErr)` pattern for server error discrimination.
+- [x] `IsValidationError` / `IsNotInitializedError` / `IsRateLimitError`: Predicate helper functions for commonly encountered error patterns.
 
 ### Pagination Iterator
 
 Developers currently must write cursor loops manually when using paginated APIs. Add iterators that handle automatic pagination.
 
-- [ ] `ListAllThreads`: Iterator that repeatedly calls `ListThreads` to traverse all pages automatically. Uses a callback-based pattern (`func(Thread) bool`) to process each item, with early termination when the callback returns false.
-- [ ] `ListAllModels`: Same pagination iterator pattern for models.
+- [x] `ListAllThreads`: Iterator that repeatedly calls `ListThreads` to traverse all pages automatically. Uses a callback-based pattern (`func(Thread) bool`) to process each item, with early termination when the callback returns false.
+- [x] `ListAllModels`: Same pagination iterator pattern for models.
 
 ### Raw JSON Event Fields Typing
 
