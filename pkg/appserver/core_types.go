@@ -48,6 +48,21 @@ type ReviewStartResult struct {
 	Turn           Turn   `json:"turn"`
 }
 
+type ReviewDelivery string
+
+const (
+	ReviewDeliveryInline   ReviewDelivery = "inline"
+	ReviewDeliveryDetached ReviewDelivery = "detached"
+)
+
+type ReviewTarget map[string]any
+
+type ReviewStartParams struct {
+	ThreadID string          `json:"threadId"`
+	Target   ReviewTarget    `json:"target"`
+	Delivery *ReviewDelivery `json:"delivery,omitempty"`
+}
+
 type CommandExecResult struct {
 	ExitCode int    `json:"exitCode"`
 	Stdout   string `json:"stdout"`

@@ -336,6 +336,14 @@ func (c *Client) InterruptTurn(ctx context.Context, params TurnInterruptParams) 
 	return result, nil
 }
 
+func (c *Client) StartReview(ctx context.Context, params ReviewStartParams) (*ReviewStartResult, error) {
+	result := &ReviewStartResult{}
+	if err := c.Call(ctx, "review/start", params, result); err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
 func (c *Client) Close() error {
 	c.mu.Lock()
 	if c.closed {
