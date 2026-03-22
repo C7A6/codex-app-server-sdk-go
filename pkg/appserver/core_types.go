@@ -624,6 +624,63 @@ type CollaborationModeListResult struct {
 	Data []CollaborationMode `json:"data"`
 }
 
+type FeedbackUploadParams struct {
+	Classification string   `json:"classification"`
+	ExtraLogFiles  []string `json:"extraLogFiles,omitempty"`
+	IncludeLogs    bool     `json:"includeLogs"`
+	Reason         *string  `json:"reason,omitempty"`
+	ThreadID       *string  `json:"threadId,omitempty"`
+}
+
+type FeedbackUploadResult struct {
+	ThreadID string `json:"threadId"`
+}
+
+type WindowsSandboxSetupMode string
+
+const (
+	WindowsSandboxSetupModeElevated   WindowsSandboxSetupMode = "elevated"
+	WindowsSandboxSetupModeUnelevated WindowsSandboxSetupMode = "unelevated"
+)
+
+type WindowsSandboxSetupStartParams struct {
+	Cwd  *string                 `json:"cwd,omitempty"`
+	Mode WindowsSandboxSetupMode `json:"mode"`
+}
+
+type WindowsSandboxSetupStartResult struct {
+	Started bool `json:"started"`
+}
+
+type ToolRequestUserInputOption struct {
+	Description string `json:"description"`
+	Label       string `json:"label"`
+}
+
+type ToolRequestUserInputQuestion struct {
+	Header   string                       `json:"header"`
+	ID       string                       `json:"id"`
+	IsOther  bool                         `json:"isOther,omitempty"`
+	IsSecret bool                         `json:"isSecret,omitempty"`
+	Options  []ToolRequestUserInputOption `json:"options,omitempty"`
+	Question string                       `json:"question"`
+}
+
+type ToolRequestUserInputParams struct {
+	ItemID    string                         `json:"itemId"`
+	Questions []ToolRequestUserInputQuestion `json:"questions"`
+	ThreadID  string                         `json:"threadId"`
+	TurnID    string                         `json:"turnId"`
+}
+
+type ToolRequestUserInputAnswer struct {
+	Answers []string `json:"answers"`
+}
+
+type ToolRequestUserInputResult struct {
+	Answers map[string]ToolRequestUserInputAnswer `json:"answers"`
+}
+
 type ModelListParams struct {
 	Cursor        *string `json:"cursor,omitempty"`
 	IncludeHidden *bool   `json:"includeHidden,omitempty"`

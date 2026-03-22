@@ -31,6 +31,9 @@ const (
 	MethodAccountUpdated            = "account/updated"
 	MethodAccountRateLimitsUpdated  = "account/rateLimits/updated"
 	MethodMCPOAuthLoginCompleted    = "mcpServer/oauthLogin/completed"
+	MethodWindowsSandboxCompleted   = "windowsSandbox/setupCompleted"
+	MethodFuzzyFileSearchUpdated    = "fuzzyFileSearch/sessionUpdated"
+	MethodFuzzyFileSearchCompleted  = "fuzzyFileSearch/sessionCompleted"
 )
 
 var errUnsupportedNotificationEvent = errors.New("appserver: unsupported notification event")
@@ -151,7 +154,9 @@ func (PlanDeltaEvent) NotificationMethod() string { return MethodItemPlanDelta }
 type ReasoningSummaryTextDeltaEvent struct {
 	ItemID       string `json:"itemId"`
 	Delta        string `json:"delta"`
-	SummaryIndex int    `json:"summaryIndex"`
+	SummaryIndex int64  `json:"summaryIndex"`
+	ThreadID     string `json:"threadId"`
+	TurnID       string `json:"turnId"`
 }
 
 func (ReasoningSummaryTextDeltaEvent) NotificationMethod() string {
@@ -160,7 +165,9 @@ func (ReasoningSummaryTextDeltaEvent) NotificationMethod() string {
 
 type ReasoningSummaryPartAddedEvent struct {
 	ItemID       string `json:"itemId"`
-	SummaryIndex int    `json:"summaryIndex"`
+	SummaryIndex int64  `json:"summaryIndex"`
+	ThreadID     string `json:"threadId"`
+	TurnID       string `json:"turnId"`
 }
 
 func (ReasoningSummaryPartAddedEvent) NotificationMethod() string {
@@ -168,16 +175,21 @@ func (ReasoningSummaryPartAddedEvent) NotificationMethod() string {
 }
 
 type ReasoningTextDeltaEvent struct {
-	ItemID string `json:"itemId"`
-	Delta  string `json:"delta"`
+	ContentIndex int64  `json:"contentIndex"`
+	ItemID       string `json:"itemId"`
+	Delta        string `json:"delta"`
+	ThreadID     string `json:"threadId"`
+	TurnID       string `json:"turnId"`
 }
 
 func (ReasoningTextDeltaEvent) NotificationMethod() string { return MethodItemReasoningTextDelta }
 
 type CommandExecutionOutputDeltaEvent struct {
-	ItemID string `json:"itemId"`
-	Delta  string `json:"delta"`
-	Stream string `json:"stream,omitempty"`
+	ItemID   string `json:"itemId,omitempty"`
+	Delta    string `json:"delta,omitempty"`
+	Stream   string `json:"stream,omitempty"`
+	ThreadID string `json:"threadId,omitempty"`
+	TurnID   string `json:"turnId,omitempty"`
 }
 
 func (CommandExecutionOutputDeltaEvent) NotificationMethod() string {
@@ -185,8 +197,10 @@ func (CommandExecutionOutputDeltaEvent) NotificationMethod() string {
 }
 
 type FileChangeOutputDeltaEvent struct {
-	ItemID string          `json:"itemId"`
-	Delta  json.RawMessage `json:"delta"`
+	ItemID   string `json:"itemId"`
+	Delta    string `json:"delta"`
+	ThreadID string `json:"threadId"`
+	TurnID   string `json:"turnId"`
 }
 
 func (FileChangeOutputDeltaEvent) NotificationMethod() string { return MethodItemFileChangeOutputDelta }
@@ -221,6 +235,42 @@ type MCPOAuthLoginCompletedEvent struct {
 }
 
 func (MCPOAuthLoginCompletedEvent) NotificationMethod() string { return MethodMCPOAuthLoginCompleted }
+
+type WindowsSandboxSetupCompletedEvent struct {
+	Mode    WindowsSandboxSetupMode `json:"mode"`
+	Success bool                    `json:"success"`
+	Error   *string                 `json:"error"`
+}
+
+func (WindowsSandboxSetupCompletedEvent) NotificationMethod() string {
+	return MethodWindowsSandboxCompleted
+}
+
+type FuzzyFileSearchResult struct {
+	FileName string   `json:"file_name"`
+	Indices  []uint32 `json:"indices,omitempty"`
+	Path     string   `json:"path"`
+	Root     string   `json:"root"`
+	Score    uint32   `json:"score"`
+}
+
+type FuzzyFileSearchSessionUpdatedEvent struct {
+	Files     []FuzzyFileSearchResult `json:"files"`
+	Query     string                  `json:"query"`
+	SessionID string                  `json:"sessionId"`
+}
+
+func (FuzzyFileSearchSessionUpdatedEvent) NotificationMethod() string {
+	return MethodFuzzyFileSearchUpdated
+}
+
+type FuzzyFileSearchSessionCompletedEvent struct {
+	SessionID string `json:"sessionId"`
+}
+
+func (FuzzyFileSearchSessionCompletedEvent) NotificationMethod() string {
+	return MethodFuzzyFileSearchCompleted
+}
 
 func (n Notification) DecodeEvent() (NotificationEvent, error) {
 	return DecodeNotificationEvent(n)
@@ -278,6 +328,12 @@ func DecodeNotificationEvent(notification Notification) (NotificationEvent, erro
 		event = &AccountRateLimitsUpdatedEvent{}
 	case MethodMCPOAuthLoginCompleted:
 		event = &MCPOAuthLoginCompletedEvent{}
+	case MethodWindowsSandboxCompleted:
+		event = &WindowsSandboxSetupCompletedEvent{}
+	case MethodFuzzyFileSearchUpdated:
+		event = &FuzzyFileSearchSessionUpdatedEvent{}
+	case MethodFuzzyFileSearchCompleted:
+		event = &FuzzyFileSearchSessionCompletedEvent{}
 	default:
 		return nil, fmt.Errorf("%w: %s", errUnsupportedNotificationEvent, notification.Method)
 	}

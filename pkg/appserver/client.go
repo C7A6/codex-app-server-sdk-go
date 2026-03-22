@@ -20,6 +20,8 @@ var (
 	errMissingClientInfo = errors.New("appserver: client info is required")
 )
 
+const MethodToolRequestUserInput = "item/tool/requestUserInput"
+
 type ProcessExitError struct {
 	Err error
 }
@@ -125,6 +127,7 @@ func (n Notification) DecodeParams(v any) error {
 }
 
 type NotificationHandler func(context.Context, Notification)
+type ToolRequestUserInputHandler func(context.Context, ToolRequestUserInputParams) (*ToolRequestUserInputResult, error)
 
 type Client struct {
 	mu                   sync.Mutex
@@ -133,6 +136,7 @@ type Client struct {
 	closed               bool
 	nextHandlerID        uint64
 	notificationHandlers map[string]map[uint64]NotificationHandler
+	toolRequestHandler   ToolRequestUserInputHandler
 }
 
 func StartStdio(ctx context.Context, opts StartOptions) (*Client, *InitializeResult, error) {
@@ -188,6 +192,22 @@ func (c *Client) RegisterNotificationHandler(method string, handler Notification
 	}, nil
 }
 
+func (c *Client) RegisterToolRequestUserInputHandler(handler ToolRequestUserInputHandler) error {
+	if handler == nil {
+		return errNilHandler
+	}
+
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	if c.closed {
+		return ErrClientClosed
+	}
+
+	c.toolRequestHandler = handler
+	return nil
+}
+
 func (c *Client) Call(ctx context.Context, method string, params, result any) error {
 	return c.call(ctx, func(sess *session) error {
 		return sess.conn.Call(ctx, method, params, result)
@@ -227,6 +247,22 @@ func (c *Client) ListExperimentalFeatures(ctx context.Context, params Experiment
 func (c *Client) ListCollaborationModes(ctx context.Context) (*CollaborationModeListResult, error) {
 	result := &CollaborationModeListResult{}
 	if err := c.Call(ctx, "collaborationMode/list", map[string]any{}, result); err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
+func (c *Client) UploadFeedback(ctx context.Context, params FeedbackUploadParams) (*FeedbackUploadResult, error) {
+	result := &FeedbackUploadResult{}
+	if err := c.Call(ctx, "feedback/upload", params, result); err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
+func (c *Client) StartWindowsSandboxSetup(ctx context.Context, params WindowsSandboxSetupStartParams) (*WindowsSandboxSetupStartResult, error) {
+	result := &WindowsSandboxSetupStartResult{}
+	if err := c.Call(ctx, "windowsSandbox/setupStart", params, result); err != nil {
 		return nil, err
 	}
 	return result, nil
@@ -828,10 +864,50 @@ func (h *clientHandler) Handle(ctx context.Context, conn *jsonrpc2.Conn, req *js
 		return
 	}
 
+	if result, handled, err := h.client.handleServerRequest(ctx, req); handled {
+		if err != nil {
+			_ = conn.ReplyWithError(ctx, req.ID, &jsonrpc2.Error{
+				Code:    jsonrpc2.CodeInvalidRequest,
+				Message: err.Error(),
+			})
+			return
+		}
+		_ = conn.Reply(ctx, req.ID, result)
+		return
+	}
+
 	_ = conn.ReplyWithError(ctx, req.ID, &jsonrpc2.Error{
 		Code:    jsonrpc2.CodeMethodNotFound,
 		Message: "appserver: server request method is not supported yet",
 	})
+}
+
+func (c *Client) handleServerRequest(ctx context.Context, req *jsonrpc2.Request) (any, bool, error) {
+	switch req.Method {
+	case MethodToolRequestUserInput:
+		handler := c.currentToolRequestUserInputHandler()
+		if handler == nil {
+			return nil, false, nil
+		}
+
+		var params ToolRequestUserInputParams
+		if req.Params != nil {
+			if err := json.Unmarshal(*req.Params, &params); err != nil {
+				return nil, true, err
+			}
+		}
+
+		result, err := handler(ctx, params)
+		if err != nil {
+			return nil, true, err
+		}
+		if result == nil {
+			result = &ToolRequestUserInputResult{Answers: map[string]ToolRequestUserInputAnswer{}}
+		}
+		return result, true, nil
+	default:
+		return nil, false, nil
+	}
 }
 
 func (c *Client) dispatchNotification(ctx context.Context, req *jsonrpc2.Request) {
@@ -868,4 +944,10 @@ func (c *Client) handlersForMethod(method string) []NotificationHandler {
 		handlers = append(handlers, handler)
 	}
 	return handlers
+}
+
+func (c *Client) currentToolRequestUserInputHandler() ToolRequestUserInputHandler {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return c.toolRequestHandler
 }
