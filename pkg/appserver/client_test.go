@@ -268,6 +268,38 @@ func TestListLoadedThreadsWithRealCodex(t *testing.T) {
 	t.Fatalf("expected loaded threads to include %q, got %#v", started.Thread.ID, loadedThreads.Data)
 }
 
+func TestSetThreadNameWithRealCodex(t *testing.T) {
+	requireCodex(t)
+
+	client, _ := startTestClient(t, false)
+	started := createPersistedThread(t, client)
+	defer func() {
+		_ = client.Close()
+	}()
+
+	name := "sdk rename test"
+	result, err := client.SetThreadName(context.Background(), ThreadSetNameParams{
+		ThreadID: started.Thread.ID,
+		Name:     name,
+	})
+	if err != nil {
+		t.Fatalf("SetThreadName returned error: %v", err)
+	}
+	if result == nil {
+		t.Fatal("expected non-nil rename result")
+	}
+
+	readResult, err := client.ReadThread(context.Background(), ThreadReadParams{
+		ThreadID: started.Thread.ID,
+	})
+	if err != nil {
+		t.Fatalf("ReadThread returned error after rename: %v", err)
+	}
+	if readResult.Thread.Name == nil || *readResult.Thread.Name != name {
+		t.Fatalf("expected thread name %q, got %#v", name, readResult.Thread.Name)
+	}
+}
+
 func TestProcessExitReturnsErrorWhenRestartDisabled(t *testing.T) {
 	requireCodex(t)
 
@@ -527,6 +559,11 @@ func TestCoreTypeDecoding(t *testing.T) {
 	}
 	if len(threadLoadedListResult.Data) != 2 || threadLoadedListResult.Data[0] != "thr_1" || threadLoadedListResult.NextCursor == nil || *threadLoadedListResult.NextCursor != "cursor_3" {
 		t.Fatalf("unexpected thread loaded list result: %#v", threadLoadedListResult)
+	}
+
+	var threadSetNameResult ThreadSetNameResult
+	if err := json.Unmarshal([]byte(`{}`), &threadSetNameResult); err != nil {
+		t.Fatalf("unmarshal thread set name result: %v", err)
 	}
 }
 
