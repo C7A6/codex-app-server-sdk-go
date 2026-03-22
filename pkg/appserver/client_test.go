@@ -1078,6 +1078,41 @@ func TestReadConfigRequirementsWithRealCodex(t *testing.T) {
 	}
 }
 
+func TestDetectExternalAgentConfigWithRealCodex(t *testing.T) {
+	requireCodex(t)
+
+	client, _ := startTestClient(t, false)
+	defer func() {
+		_ = client.Close()
+	}()
+
+	cwd, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("Getwd returned error: %v", err)
+	}
+
+	result, err := client.DetectExternalAgentConfig(context.Background(), ExternalAgentConfigDetectParams{
+		Cwds:        []string{cwd},
+		IncludeHome: false,
+	})
+	if err != nil {
+		t.Fatalf("DetectExternalAgentConfig returned error: %v", err)
+	}
+	if result == nil {
+		t.Fatal("expected external agent detect result")
+	}
+	for _, item := range result.Items {
+		if item.Description == "" {
+			t.Fatalf("expected migration description: %#v", item)
+		}
+		switch item.ItemType {
+		case ExternalAgentConfigMigrationItemTypeAgentsMD, ExternalAgentConfigMigrationItemTypeConfig, ExternalAgentConfigMigrationItemTypeSkills, ExternalAgentConfigMigrationItemTypeMCPServerConfig:
+		default:
+			t.Fatalf("unexpected migration item type: %#v", item)
+		}
+	}
+}
+
 func TestListPluginsWithRealCodex(t *testing.T) {
 	requireCodex(t)
 
@@ -1461,6 +1496,20 @@ func TestCoreTypeDecoding(t *testing.T) {
 	}
 	if configRequirementsResult.Requirements == nil || len(configRequirementsResult.Requirements.AllowedSandboxModes) != 1 || configRequirementsResult.Requirements.EnforceResidency == nil || *configRequirementsResult.Requirements.EnforceResidency != ConfigRequirementsResidencyUS {
 		t.Fatalf("unexpected config requirements result: %#v", configRequirementsResult)
+	}
+
+	var detectResult ExternalAgentConfigDetectResult
+	if err := json.Unmarshal([]byte(`{
+		"items":[{
+			"cwd":"/workspace/repo",
+			"description":"Import AGENTS.md guidance",
+			"itemType":"AGENTS_MD"
+		}]
+	}`), &detectResult); err != nil {
+		t.Fatalf("unmarshal external agent detect result: %v", err)
+	}
+	if len(detectResult.Items) != 1 || detectResult.Items[0].ItemType != ExternalAgentConfigMigrationItemTypeAgentsMD {
+		t.Fatalf("unexpected external agent detect result: %#v", detectResult)
 	}
 
 	var modelListResult ModelListResult
