@@ -408,6 +408,14 @@ func (c *Client) WriteConfigValue(ctx context.Context, params ConfigWriteParams)
 	return result, nil
 }
 
+func (c *Client) BatchWriteConfig(ctx context.Context, params ConfigBatchWriteParams) (*ConfigWriteResult, error) {
+	result := &ConfigWriteResult{}
+	if err := c.Call(ctx, "config/batchWrite", params, result); err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
 func (c *Client) ListPlugins(ctx context.Context, params PluginListParams) (*PluginListResult, error) {
 	result := &PluginListResult{}
 	if err := c.Call(ctx, "plugin/list", params, result); err != nil {

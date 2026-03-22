@@ -143,6 +143,19 @@ type ConfigWriteParams struct {
 	Value           any                 `json:"value"`
 }
 
+type ConfigEdit struct {
+	KeyPath       string              `json:"keyPath"`
+	MergeStrategy ConfigMergeStrategy `json:"mergeStrategy"`
+	Value         any                 `json:"value"`
+}
+
+type ConfigBatchWriteParams struct {
+	Edits            []ConfigEdit `json:"edits"`
+	ExpectedVersion  *string      `json:"expectedVersion,omitempty"`
+	FilePath         *string      `json:"filePath,omitempty"`
+	ReloadUserConfig bool         `json:"reloadUserConfig,omitempty"`
+}
+
 type ConfigWriteStatus string
 
 const (
