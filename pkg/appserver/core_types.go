@@ -182,6 +182,15 @@ type SkillsListResult struct {
 	Data []SkillsListEntry `json:"data"`
 }
 
+type SkillsConfigWriteParams struct {
+	Path    string `json:"path"`
+	Enabled bool   `json:"enabled"`
+}
+
+type SkillsConfigWriteResult struct {
+	EffectiveEnabled bool `json:"effectiveEnabled"`
+}
+
 type ModelListParams struct {
 	Cursor        *string `json:"cursor,omitempty"`
 	IncludeHidden *bool   `json:"includeHidden,omitempty"`

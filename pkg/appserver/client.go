@@ -384,6 +384,14 @@ func (c *Client) ListSkills(ctx context.Context, params SkillsListParams) (*Skil
 	return result, nil
 }
 
+func (c *Client) WriteSkillsConfig(ctx context.Context, params SkillsConfigWriteParams) (*SkillsConfigWriteResult, error) {
+	result := &SkillsConfigWriteResult{}
+	if err := c.Call(ctx, "skills/config/write", params, result); err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
 func (c *Client) Close() error {
 	c.mu.Lock()
 	if c.closed {
