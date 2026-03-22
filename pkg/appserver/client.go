@@ -264,6 +264,14 @@ func (c *Client) ListLoadedThreads(ctx context.Context, params ThreadLoadedListP
 	return result, nil
 }
 
+func (c *Client) SetThreadName(ctx context.Context, params ThreadSetNameParams) (*ThreadSetNameResult, error) {
+	result := &ThreadSetNameResult{}
+	if err := c.Call(ctx, "thread/name/set", params, result); err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
 func (c *Client) Close() error {
 	c.mu.Lock()
 	if c.closed {

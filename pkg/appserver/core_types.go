@@ -227,3 +227,10 @@ type ThreadLoadedListResult struct {
 	Data       []string `json:"data"`
 	NextCursor *string  `json:"nextCursor,omitempty"`
 }
+
+type ThreadSetNameParams struct {
+	ThreadID string `json:"threadId"`
+	Name     string `json:"name"`
+}
+
+type ThreadSetNameResult struct{}
