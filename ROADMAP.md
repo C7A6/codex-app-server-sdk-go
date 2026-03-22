@@ -141,9 +141,9 @@ Reason: Interactive authentication, logout orchestration, and host-managed ChatG
 - [x] `AddIntegrationTests`: Why transport, auth, and session behavior should be verified against the real `codex` binary. How keep real-binary integration tests for initialization, auth reads, process failure, and restart scenarios.
 - [x] `AddGoldenProtocolTests`: Why stable payload encoding and decoding matters for SDK compatibility. How capture representative JSON-RPC request and response fixtures from the document and assert struct compatibility.
 
-## Developer Experience Improvements
+### Developer Experience Improvements
 
-### Typed Event Handler Registration
+#### Typed Event Handler Registration
 
 The current `RegisterNotificationHandler` uses a `func(context.Context, Notification)` signature, forcing developers to repeat `DecodeEvent()` + type assertion boilerplate on every handler. Add generic typed handlers that provide compile-time type safety.
 
@@ -151,7 +151,7 @@ The current `RegisterNotificationHandler` uses a `func(context.Context, Notifica
 - [x] `OnTurnCompleted`: Convenience helper for the turn/completed event. Delivers the final turn state (completed, interrupted, failed) via a typed callback.
 - [x] `OnItemDelta`: Unified convenience helper that receives all item delta event families (agentMessage, reasoning, commandOutput, fileChange) through a single handler. Reduces the need to register four separate handlers when assembling streamed text.
 
-### High-Level Conversation Workflow
+#### High-Level Conversation Workflow
 
 The SDK currently provides only low-level RPC methods, requiring 50+ lines of event coordination code for basic workflows like "create thread → send message → wait for completion." Add high-level workflow APIs.
 
@@ -159,21 +159,21 @@ The SDK currently provides only low-level RPC methods, requiring 50+ lines of ev
 - [x] `StreamTurn`: Calls turn/start and streams all events for that turn (item/started, item/completed, deltas, etc.) into a Go channel. Consumers use `for event := range ch { switch e := event.(type) { ... } }` to process events.
 - [x] `QuickThread`: All-in-one convenience method that creates a thread, sends the first message, and waits for completion in a single call. Suited for simple one-shot query scenarios.
 
-### Structured Error Types
+#### Structured Error Types
 
 All server errors currently come back as generic errors, forcing developers to rely on `strings.Contains(err.Error(), ...)` string matching. Add structured error types based on JSON-RPC error codes.
 
 - [x] `RPCError`: Struct containing JSON-RPC error code, message, and data. Enables `errors.As(err, &rpcErr)` pattern for server error discrimination.
 - [x] `IsValidationError` / `IsNotInitializedError` / `IsRateLimitError`: Predicate helper functions for commonly encountered error patterns.
 
-### Pagination Iterator
+#### Pagination Iterator
 
 Developers currently must write cursor loops manually when using paginated APIs. Add iterators that handle automatic pagination.
 
 - [x] `ListAllThreads`: Iterator that repeatedly calls `ListThreads` to traverse all pages automatically. Uses a callback-based pattern (`func(Thread) bool`) to process each item, with early termination when the callback returns false.
 - [x] `ListAllModels`: Same pagination iterator pattern for models.
 
-### Raw JSON Event Fields Typing
+#### Raw JSON Event Fields Typing
 
 Replace `json.RawMessage` fields in some event types (TokenUsage, Diff, RateLimits, etc.) with proper typed structs so developers can access fields directly without additional unmarshal calls.
 
