@@ -169,6 +169,81 @@ func TestRegisterNotificationHandlerReceivesThreadStarted(t *testing.T) {
 	}
 }
 
+func TestDecodeNotificationEvent(t *testing.T) {
+	t.Parallel()
+
+	notification := Notification{
+		Method: MethodAccountLoginCompleted,
+		Params: json.RawMessage(`{"loginId":"login-123","success":true,"error":null}`),
+	}
+
+	event, err := notification.DecodeEvent()
+	if err != nil {
+		t.Fatalf("DecodeEvent returned error: %v", err)
+	}
+
+	loginCompleted, ok := event.(*AccountLoginCompletedEvent)
+	if !ok {
+		t.Fatalf("expected *AccountLoginCompletedEvent, got %T", event)
+	}
+	if loginCompleted.LoginID == nil || *loginCompleted.LoginID != "login-123" {
+		t.Fatalf("unexpected login ID: %#v", loginCompleted.LoginID)
+	}
+	if !loginCompleted.Success {
+		t.Fatal("expected success=true")
+	}
+}
+
+func TestRegisterNotificationHandlerCanDecodeTypedEvent(t *testing.T) {
+	requireCodex(t)
+
+	client, _ := startTestClient(t, false)
+	defer func() {
+		_ = client.Close()
+	}()
+
+	received := make(chan *ThreadStartedEvent, 1)
+	unregister, err := client.RegisterNotificationHandler(MethodThreadStarted, func(ctx context.Context, notification Notification) {
+		event, err := notification.DecodeEvent()
+		if err != nil {
+			t.Errorf("DecodeEvent returned error: %v", err)
+			return
+		}
+
+		threadStarted, ok := event.(*ThreadStartedEvent)
+		if !ok {
+			t.Errorf("expected *ThreadStartedEvent, got %T", event)
+			return
+		}
+
+		select {
+		case received <- threadStarted:
+		default:
+		}
+	})
+	if err != nil {
+		t.Fatalf("RegisterNotificationHandler returned error: %v", err)
+	}
+	defer unregister()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	var result json.RawMessage
+	if err := client.Call(ctx, "thread/start", map[string]any{}, &result); err != nil {
+		t.Fatalf("thread/start returned error: %v", err)
+	}
+
+	select {
+	case event := <-received:
+		if len(event.Thread) == 0 {
+			t.Fatal("expected thread payload")
+		}
+	case <-ctx.Done():
+		t.Fatalf("timed out waiting for typed notification: %v", ctx.Err())
+	}
+}
+
 func requireCodex(t *testing.T) {
 	t.Helper()
 
