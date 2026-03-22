@@ -1052,6 +1052,32 @@ func TestBatchWriteConfigWithRealCodex(t *testing.T) {
 	}
 }
 
+func TestReadConfigRequirementsWithRealCodex(t *testing.T) {
+	requireCodex(t)
+
+	client, _ := startTestClient(t, false)
+	defer func() {
+		_ = client.Close()
+	}()
+
+	result, err := client.ReadConfigRequirements(context.Background())
+	if err != nil {
+		t.Fatalf("ReadConfigRequirements returned error: %v", err)
+	}
+	if result == nil {
+		t.Fatal("expected config requirements result")
+	}
+	if result.Requirements != nil {
+		for _, mode := range result.Requirements.AllowedSandboxModes {
+			switch mode {
+			case "read-only", "workspace-write", "danger-full-access":
+			default:
+				t.Fatalf("unexpected sandbox mode: %q", mode)
+			}
+		}
+	}
+}
+
 func TestListPluginsWithRealCodex(t *testing.T) {
 	requireCodex(t)
 
@@ -1420,6 +1446,21 @@ func TestCoreTypeDecoding(t *testing.T) {
 	}
 	if configBatchWriteResult.FilePath != "/tmp/config.toml" || configBatchWriteResult.Status != ConfigWriteStatusOKOverridden || configBatchWriteResult.Version != "v2" {
 		t.Fatalf("unexpected config batch write result: %#v", configBatchWriteResult)
+	}
+
+	var configRequirementsResult ConfigRequirementsReadResult
+	if err := json.Unmarshal([]byte(`{
+		"requirements":{
+			"allowedSandboxModes":["workspace-write"],
+			"allowedWebSearchModes":["live"],
+			"enforceResidency":"us",
+			"featureRequirements":{"experimental_api":true}
+		}
+	}`), &configRequirementsResult); err != nil {
+		t.Fatalf("unmarshal config requirements result: %v", err)
+	}
+	if configRequirementsResult.Requirements == nil || len(configRequirementsResult.Requirements.AllowedSandboxModes) != 1 || configRequirementsResult.Requirements.EnforceResidency == nil || *configRequirementsResult.Requirements.EnforceResidency != ConfigRequirementsResidencyUS {
+		t.Fatalf("unexpected config requirements result: %#v", configRequirementsResult)
 	}
 
 	var modelListResult ModelListResult
