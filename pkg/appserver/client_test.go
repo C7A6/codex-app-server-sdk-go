@@ -993,6 +993,33 @@ func TestReadPluginWithRealCodex(t *testing.T) {
 	}
 }
 
+func TestListAppsWithRealCodex(t *testing.T) {
+	requireCodex(t)
+
+	client, _ := startTestClient(t, false)
+	defer func() {
+		_ = client.Close()
+	}()
+
+	limit := uint32(10)
+	forceRefetch := true
+	result, err := client.ListApps(context.Background(), AppsListParams{
+		Limit:        &limit,
+		ForceRefetch: &forceRefetch,
+	})
+	if err != nil {
+		t.Fatalf("ListApps returned error: %v", err)
+	}
+	if result == nil {
+		t.Fatal("expected apps list result")
+	}
+	for _, app := range result.Data {
+		if app.ID == "" || app.Name == "" {
+			t.Fatalf("expected app identity fields: %#v", app)
+		}
+	}
+}
+
 func TestProcessExitReturnsErrorWhenRestartDisabled(t *testing.T) {
 	requireCodex(t)
 
@@ -1436,6 +1463,29 @@ func TestCoreTypeDecoding(t *testing.T) {
 	}
 	if pluginReadResult.Plugin.Summary.Name != "demo" || pluginReadResult.Plugin.MarketplaceName != "official" {
 		t.Fatalf("unexpected plugin read result: %#v", pluginReadResult)
+	}
+
+	var appsListResult AppsListResult
+	if err := json.Unmarshal([]byte(`{
+		"data":[{
+			"id":"app_1",
+			"name":"Demo App",
+			"isAccessible":true,
+			"isEnabled":true,
+			"pluginDisplayNames":["demo"],
+			"branding":{"isDiscoverableApp":true,"category":"productivity"},
+			"appMetadata":{
+				"categories":["utilities"],
+				"review":{"status":"approved"},
+				"screenshots":[{"userPrompt":"Show the home screen","url":"https://example.com/shot.png"}]
+			}
+		}],
+		"nextCursor":"cursor_2"
+	}`), &appsListResult); err != nil {
+		t.Fatalf("unmarshal apps list result: %v", err)
+	}
+	if len(appsListResult.Data) != 1 || appsListResult.Data[0].ID != "app_1" || appsListResult.NextCursor == nil || *appsListResult.NextCursor != "cursor_2" {
+		t.Fatalf("unexpected apps list result: %#v", appsListResult)
 	}
 }
 
