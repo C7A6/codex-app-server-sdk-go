@@ -479,6 +479,81 @@ func TestQuickThreadWithRealCodex(t *testing.T) {
 	}
 }
 
+func TestRPCErrorAndPredicatesWithRealCodex(t *testing.T) {
+	requireCodex(t)
+
+	client, _ := startTempDirClient(t, false, nil)
+	defer func() {
+		_ = client.Close()
+	}()
+
+	_, err := client.ExecCommand(context.Background(), CommandExecParams{Command: []string{}})
+	if err == nil {
+		t.Fatal("expected validation error")
+	}
+
+	var rpcErr *RPCError
+	if !errors.As(err, &rpcErr) {
+		t.Fatalf("expected RPCError, got %T: %v", err, err)
+	}
+	if rpcErr.Message == "" {
+		t.Fatalf("expected rpc error message: %#v", rpcErr)
+	}
+	if !IsValidationError(err) {
+		t.Fatalf("expected validation predicate to match: %v", err)
+	}
+
+	notInitializedErr := wrapRPCError(&jsonrpc2.Error{Code: jsonrpc2.CodeInvalidRequest, Message: "Not initialized"})
+	if !IsNotInitializedError(notInitializedErr) {
+		t.Fatalf("expected not initialized predicate to match: %v", notInitializedErr)
+	}
+
+	rateLimitErr := wrapRPCError(&jsonrpc2.Error{Code: -32001, Message: "Server overloaded; retry later."})
+	if !IsRateLimitError(rateLimitErr) {
+		t.Fatalf("expected rate limit predicate to match: %v", rateLimitErr)
+	}
+}
+
+func TestListAllThreadsAndModelsWithRealCodex(t *testing.T) {
+	requireCodex(t)
+
+	client, _ := startTempDirClient(t, false, nil)
+	defer func() {
+		_ = client.Close()
+	}()
+
+	first := createPersistedThread(t, client)
+	second := createPersistedThread(t, client)
+
+	limit := uint32(1)
+	seenThreads := map[string]bool{}
+	if err := client.ListAllThreads(context.Background(), ThreadListParams{Limit: &limit}, func(thread Thread) bool {
+		seenThreads[thread.ID] = true
+		return !(seenThreads[first.Thread.ID] && seenThreads[second.Thread.ID])
+	}); err != nil {
+		t.Fatalf("ListAllThreads returned error: %v", err)
+	}
+	if !seenThreads[first.Thread.ID] || !seenThreads[second.Thread.ID] {
+		t.Fatalf("expected iterator to visit created threads: %#v", seenThreads)
+	}
+
+	modelLimit := uint32(1)
+	modelCount := 0
+	var firstModelID string
+	if err := client.ListAllModels(context.Background(), ModelListParams{Limit: &modelLimit}, func(model ModelInfo) bool {
+		modelCount++
+		if firstModelID == "" {
+			firstModelID = model.ID
+		}
+		return false
+	}); err != nil {
+		t.Fatalf("ListAllModels returned error: %v", err)
+	}
+	if modelCount != 1 || firstModelID == "" {
+		t.Fatalf("expected early-stop model iteration: count=%d first=%q", modelCount, firstModelID)
+	}
+}
+
 func startTempDirClient(t *testing.T, restartOnFailure bool, mutate func(*StartOptions)) (*Client, *InitializeResult) {
 	t.Helper()
 
