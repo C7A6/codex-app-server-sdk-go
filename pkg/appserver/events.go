@@ -40,27 +40,27 @@ type NotificationEvent interface {
 }
 
 type ThreadStartedEvent struct {
-	Thread json.RawMessage `json:"thread"`
+	Thread Thread `json:"thread"`
 }
 
 func (ThreadStartedEvent) NotificationMethod() string { return MethodThreadStarted }
 
 type ThreadStatusChangedEvent struct {
-	ThreadID string          `json:"threadId"`
-	Status   json.RawMessage `json:"status"`
+	ThreadID string       `json:"threadId"`
+	Status   ThreadStatus `json:"status"`
 }
 
 func (ThreadStatusChangedEvent) NotificationMethod() string { return MethodThreadStatusChanged }
 
 type ThreadArchivedEvent struct {
-	ThreadID string          `json:"threadId,omitempty"`
-	Thread   json.RawMessage `json:"thread,omitempty"`
+	ThreadID string  `json:"threadId,omitempty"`
+	Thread   *Thread `json:"thread,omitempty"`
 }
 
 func (ThreadArchivedEvent) NotificationMethod() string { return MethodThreadArchived }
 
 type ThreadUnarchivedEvent struct {
-	Thread json.RawMessage `json:"thread"`
+	Thread Thread `json:"thread"`
 }
 
 func (ThreadUnarchivedEvent) NotificationMethod() string { return MethodThreadUnarchived }
@@ -86,15 +86,15 @@ type ThreadTokenUsageUpdatedEvent struct {
 func (ThreadTokenUsageUpdatedEvent) NotificationMethod() string { return MethodThreadTokenUsageUpdated }
 
 type TurnStartedEvent struct {
-	ThreadID string          `json:"threadId"`
-	Turn     json.RawMessage `json:"turn"`
+	ThreadID string `json:"threadId"`
+	Turn     Turn   `json:"turn"`
 }
 
 func (TurnStartedEvent) NotificationMethod() string { return MethodTurnStarted }
 
 type TurnCompletedEvent struct {
-	ThreadID string          `json:"threadId"`
-	Turn     json.RawMessage `json:"turn"`
+	ThreadID string `json:"threadId"`
+	Turn     Turn   `json:"turn"`
 }
 
 func (TurnCompletedEvent) NotificationMethod() string { return MethodTurnCompleted }
@@ -116,17 +116,17 @@ type TurnPlanUpdatedEvent struct {
 func (TurnPlanUpdatedEvent) NotificationMethod() string { return MethodTurnPlanUpdated }
 
 type ItemStartedEvent struct {
-	ThreadID string          `json:"threadId"`
-	TurnID   string          `json:"turnId"`
-	Item     json.RawMessage `json:"item"`
+	ThreadID string     `json:"threadId"`
+	TurnID   string     `json:"turnId"`
+	Item     ThreadItem `json:"item"`
 }
 
 func (ItemStartedEvent) NotificationMethod() string { return MethodItemStarted }
 
 type ItemCompletedEvent struct {
-	ThreadID string          `json:"threadId"`
-	TurnID   string          `json:"turnId"`
-	Item     json.RawMessage `json:"item"`
+	ThreadID string     `json:"threadId"`
+	TurnID   string     `json:"turnId"`
+	Item     ThreadItem `json:"item"`
 }
 
 func (ItemCompletedEvent) NotificationMethod() string { return MethodItemCompleted }
