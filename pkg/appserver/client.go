@@ -296,6 +296,14 @@ func (c *Client) UnsubscribeThread(ctx context.Context, params ThreadUnsubscribe
 	return result, nil
 }
 
+func (c *Client) CompactThread(ctx context.Context, params ThreadCompactStartParams) (*ThreadCompactStartResult, error) {
+	result := &ThreadCompactStartResult{}
+	if err := c.Call(ctx, "thread/compact/start", params, result); err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
 func (c *Client) Close() error {
 	c.mu.Lock()
 	if c.closed {

@@ -264,3 +264,9 @@ const (
 type ThreadUnsubscribeResult struct {
 	Status ThreadUnsubscribeStatus `json:"status"`
 }
+
+type ThreadCompactStartParams struct {
+	ThreadID string `json:"threadId"`
+}
+
+type ThreadCompactStartResult struct{}
