@@ -432,6 +432,70 @@ func (c *Client) DetectExternalAgentConfig(ctx context.Context, params ExternalA
 	return result, nil
 }
 
+func (c *Client) ImportExternalAgentConfig(ctx context.Context, params ExternalAgentConfigImportParams) (*ExternalAgentConfigImportResult, error) {
+	result := &ExternalAgentConfigImportResult{}
+	if err := c.Call(ctx, "externalAgentConfig/import", params, result); err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
+func (c *Client) ReadFile(ctx context.Context, params FSReadFileParams) (*FSReadFileResult, error) {
+	result := &FSReadFileResult{}
+	if err := c.Call(ctx, "fs/readFile", params, result); err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
+func (c *Client) WriteFile(ctx context.Context, params FSWriteFileParams) (*FSWriteFileResult, error) {
+	result := &FSWriteFileResult{}
+	if err := c.Call(ctx, "fs/writeFile", params, result); err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
+func (c *Client) CreateDirectory(ctx context.Context, params FSCreateDirectoryParams) (*FSCreateDirectoryResult, error) {
+	result := &FSCreateDirectoryResult{}
+	if err := c.Call(ctx, "fs/createDirectory", params, result); err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
+func (c *Client) GetMetadata(ctx context.Context, params FSGetMetadataParams) (*FSGetMetadataResult, error) {
+	result := &FSGetMetadataResult{}
+	if err := c.Call(ctx, "fs/getMetadata", params, result); err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
+func (c *Client) ReadDirectory(ctx context.Context, params FSReadDirectoryParams) (*FSReadDirectoryResult, error) {
+	result := &FSReadDirectoryResult{}
+	if err := c.Call(ctx, "fs/readDirectory", params, result); err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
+func (c *Client) RemovePath(ctx context.Context, params FSRemovePathParams) (*FSRemovePathResult, error) {
+	result := &FSRemovePathResult{}
+	if err := c.Call(ctx, "fs/remove", params, result); err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
+func (c *Client) CopyPath(ctx context.Context, params FSCopyPathParams) (*FSCopyPathResult, error) {
+	result := &FSCopyPathResult{}
+	if err := c.Call(ctx, "fs/copy", params, result); err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
 func (c *Client) ListPlugins(ctx context.Context, params PluginListParams) (*PluginListResult, error) {
 	result := &PluginListResult{}
 	if err := c.Call(ctx, "plugin/list", params, result); err != nil {

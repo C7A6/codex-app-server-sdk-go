@@ -507,6 +507,75 @@ type ExternalAgentConfigDetectResult struct {
 	Items []ExternalAgentConfigMigrationItem `json:"items"`
 }
 
+type ExternalAgentConfigImportParams struct {
+	MigrationItems []ExternalAgentConfigMigrationItem `json:"migrationItems"`
+}
+
+type ExternalAgentConfigImportResult struct{}
+
+type FSReadFileParams struct {
+	Path string `json:"path"`
+}
+
+type FSReadFileResult struct {
+	DataBase64 string `json:"dataBase64"`
+}
+
+type FSWriteFileParams struct {
+	DataBase64 string `json:"dataBase64"`
+	Path       string `json:"path"`
+}
+
+type FSWriteFileResult struct{}
+
+type FSCreateDirectoryParams struct {
+	Path      string `json:"path"`
+	Recursive *bool  `json:"recursive,omitempty"`
+}
+
+type FSCreateDirectoryResult struct{}
+
+type FSGetMetadataParams struct {
+	Path string `json:"path"`
+}
+
+type FSGetMetadataResult struct {
+	CreatedAtMs  int64 `json:"createdAtMs"`
+	IsDirectory  bool  `json:"isDirectory"`
+	IsFile       bool  `json:"isFile"`
+	ModifiedAtMs int64 `json:"modifiedAtMs"`
+}
+
+type FSReadDirectoryParams struct {
+	Path string `json:"path"`
+}
+
+type FSReadDirectoryEntry struct {
+	FileName    string `json:"fileName"`
+	IsDirectory bool   `json:"isDirectory"`
+	IsFile      bool   `json:"isFile"`
+}
+
+type FSReadDirectoryResult struct {
+	Entries []FSReadDirectoryEntry `json:"entries"`
+}
+
+type FSRemovePathParams struct {
+	Force     *bool  `json:"force,omitempty"`
+	Path      string `json:"path"`
+	Recursive *bool  `json:"recursive,omitempty"`
+}
+
+type FSRemovePathResult struct{}
+
+type FSCopyPathParams struct {
+	DestinationPath string `json:"destinationPath"`
+	Recursive       bool   `json:"recursive"`
+	SourcePath      string `json:"sourcePath"`
+}
+
+type FSCopyPathResult struct{}
+
 type ModelListParams struct {
 	Cursor        *string `json:"cursor,omitempty"`
 	IncludeHidden *bool   `json:"includeHidden,omitempty"`
