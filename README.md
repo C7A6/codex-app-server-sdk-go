@@ -28,7 +28,7 @@ go get github.com/C7A6/codex-app-server-sdk-go/pkg/appserver
 Requirements:
 
 - Go 1.26+
-- `codex` CLI installed and available on `PATH`
+- `codex` CLI installed and available on `PATH` ([installation guide placeholder](https://developers.openai.com/codex))
 
 ## Quick Start
 
@@ -67,186 +67,94 @@ func main() {
 ### Start a thread and send a message
 
 ```go
-package main
-
-import (
-	"context"
-	"log"
-
-	"github.com/C7A6/codex-app-server-sdk-go/pkg/appserver"
-)
-
-func main() {
-	ctx := context.Background()
-
-	client, _, err := appserver.NewClient(ctx, appserver.StartOptions{
-		ClientInfo: appserver.ClientInfo{
-			Name:    "example_client",
-			Title:   "Example Client",
-			Version: "0.1.0",
-		},
-	})
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer client.Close()
-
-	thread, err := client.StartThread(ctx, appserver.ThreadStartParams{})
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	turn, err := client.StartTurn(ctx, appserver.TurnStartParams{
-		ThreadID: thread.Thread.ID,
-		Input: []appserver.TurnStartInputItem{
-			{"type": "text", "text": "Summarize this repository."},
-		},
-	})
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	log.Printf("turn started: %s", turn.Turn.ID)
+// Following examples assume client is already created as shown above.
+thread, err := client.StartThread(ctx, appserver.ThreadStartParams{})
+if err != nil {
+	log.Fatal(err)
 }
+
+turn, err := client.StartTurn(ctx, appserver.TurnStartParams{
+	ThreadID: thread.Thread.ID,
+	Input: []appserver.TurnStartInputItem{
+		{"type": "text", "text": "Summarize this repository."},
+	},
+})
+if err != nil {
+	log.Fatal(err)
+}
+
+log.Printf("turn started: %s", turn.Turn.ID)
 ```
 
 ### Use `SendMessageAndWait`
 
 ```go
-package main
-
-import (
-	"context"
-	"log"
-	"time"
-
-	"github.com/C7A6/codex-app-server-sdk-go/pkg/appserver"
-)
-
-func main() {
-	client, _, err := appserver.NewClient(context.Background(), appserver.StartOptions{
-		ClientInfo: appserver.ClientInfo{
-			Name:    "example_client",
-			Title:   "Example Client",
-			Version: "0.1.0",
-		},
-	})
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer client.Close()
-
-	thread, err := client.StartThread(context.Background(), appserver.ThreadStartParams{})
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), 90*time.Second)
-	defer cancel()
-
-	completed, err := client.SendMessageAndWait(ctx, thread.Thread.ID, "Explain the purpose of this SDK.")
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	log.Printf("turn completed: %s (%s)", completed.Turn.ID, completed.Turn.Status)
+// Following examples assume client is already created as shown above.
+thread, err := client.StartThread(ctx, appserver.ThreadStartParams{})
+if err != nil {
+	log.Fatal(err)
 }
+
+waitCtx, cancel := context.WithTimeout(ctx, 90*time.Second)
+defer cancel()
+
+completed, err := client.SendMessageAndWait(waitCtx, thread.Thread.ID, "Explain the purpose of this SDK.")
+if err != nil {
+	log.Fatal(err)
+}
+
+log.Printf("turn completed: %s (%s)", completed.Turn.ID, completed.Turn.Status)
 ```
 
 ### Use `OnEvent[T]` typed event handlers
 
 ```go
-package main
+// Following examples assume client is already created as shown above.
+unregister, err := appserver.OnEvent(client, func(ctx context.Context, event *appserver.ThreadStartedEvent) {
+	log.Printf("thread started: %s", event.Thread.ID)
+})
+if err != nil {
+	log.Fatal(err)
+}
+defer unregister()
 
-import (
-	"context"
-	"log"
-
-	"github.com/C7A6/codex-app-server-sdk-go/pkg/appserver"
-)
-
-func main() {
-	client, _, err := appserver.NewClient(context.Background(), appserver.StartOptions{
-		ClientInfo: appserver.ClientInfo{
-			Name:    "example_client",
-			Title:   "Example Client",
-			Version: "0.1.0",
-		},
-	})
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer client.Close()
-
-	unregister, err := appserver.OnEvent(client, func(ctx context.Context, event *appserver.ThreadStartedEvent) {
-		log.Printf("thread started: %s", event.Thread.ID)
-	})
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer unregister()
-
-	if _, err := client.StartThread(context.Background(), appserver.ThreadStartParams{}); err != nil {
-		log.Fatal(err)
-	}
+if _, err := client.StartThread(ctx, appserver.ThreadStartParams{}); err != nil {
+	log.Fatal(err)
 }
 ```
 
 ### Use `StreamTurn` for streaming
 
 ```go
-package main
+// Following examples assume client is already created as shown above.
+thread, err := client.StartThread(ctx, appserver.ThreadStartParams{})
+if err != nil {
+	log.Fatal(err)
+}
 
-import (
-	"context"
-	"log"
-	"time"
+streamCtx, cancel := context.WithTimeout(ctx, 90*time.Second)
+defer cancel()
 
-	"github.com/C7A6/codex-app-server-sdk-go/pkg/appserver"
-)
+events, _, err := client.StreamTurn(streamCtx, appserver.TurnStartParams{
+	ThreadID: thread.Thread.ID,
+	Input: []appserver.TurnStartInputItem{
+		{"type": "text", "text": "Stream your progress while solving this task."},
+	},
+})
+if err != nil {
+	log.Fatal(err)
+}
 
-func main() {
-	client, _, err := appserver.NewClient(context.Background(), appserver.StartOptions{
-		ClientInfo: appserver.ClientInfo{
-			Name:    "example_client",
-			Title:   "Example Client",
-			Version: "0.1.0",
-		},
-	})
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer client.Close()
-
-	thread, err := client.StartThread(context.Background(), appserver.ThreadStartParams{})
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), 90*time.Second)
-	defer cancel()
-
-	events, _, err := client.StreamTurn(ctx, appserver.TurnStartParams{
-		ThreadID: thread.Thread.ID,
-		Input: []appserver.TurnStartInputItem{
-			{"type": "text", "text": "Stream your progress while solving this task."},
-		},
-	})
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	for event := range events {
-		switch e := event.(type) {
-		case *appserver.TurnStartedEvent:
-			log.Printf("turn started: %s", e.Turn.ID)
-		case *appserver.ItemStartedEvent:
-			log.Printf("item started: %s (%s)", e.Item.ID, e.Item.Type)
-		case *appserver.AgentMessageDeltaEvent:
-			log.Print(e.Delta)
-		case *appserver.TurnCompletedEvent:
-			log.Printf("turn completed: %s", e.Turn.Status)
-		}
+for event := range events {
+	switch e := event.(type) {
+	case *appserver.TurnStartedEvent:
+		log.Printf("turn started: %s", e.Turn.ID)
+	case *appserver.ItemStartedEvent:
+		log.Printf("item started: %s (%s)", e.Item.ID, e.Item.Type)
+	case *appserver.AgentMessageDeltaEvent:
+		log.Print(e.Delta)
+	case *appserver.TurnCompletedEvent:
+		log.Printf("turn completed: %s", e.Turn.Status)
 	}
 }
 ```
@@ -257,6 +165,8 @@ The SDK exposes low-level request methods plus higher-level workflow helpers.
 
 ### Connection and lifecycle
 
+Start, initialize, manage, and shut down a `codex app-server` session.
+
 - `NewClient`
 - `StartStdio`
 - `Close`
@@ -266,12 +176,16 @@ The SDK exposes low-level request methods plus higher-level workflow helpers.
 
 ### Initialization and capabilities
 
+Control the handshake and per-connection capability flags.
+
 - `Initialize`
 - `Initialized`
 - `StartOptions.SetExperimentalAPI`
 - `StartOptions.SetNotificationOptOut`
 
 ### Threads and turns
+
+Create, resume, fork, read, and manage conversation threads and turns.
 
 - `StartThread`, `ResumeThread`, `ForkThread`, `ReadThread`
 - `ListThreads`, `ListLoadedThreads`, `ListAllThreads`
@@ -281,11 +195,15 @@ The SDK exposes low-level request methods plus higher-level workflow helpers.
 
 ### High-level workflows
 
+Run common end-to-end conversation flows with less manual event wiring.
+
 - `SendMessageAndWait`
 - `StreamTurn`
 - `QuickThread`
 
 ### Events and notifications
+
+Subscribe to typed server notifications and item delta streams.
 
 - `RegisterNotificationHandler`
 - `OnEvent[T]`
@@ -295,6 +213,8 @@ The SDK exposes low-level request methods plus higher-level workflow helpers.
 
 ### Discovery and account
 
+Discover models and capabilities, and inspect account and rate-limit state.
+
 - `ListModels`, `ListAllModels`
 - `ListExperimentalFeatures`
 - `ListCollaborationModes`
@@ -303,6 +223,8 @@ The SDK exposes low-level request methods plus higher-level workflow helpers.
 
 ### Command execution
 
+Run sandboxed commands outside thread flows and manage interactive sessions.
+
 - `ExecCommand`
 - `WriteCommandStdin`
 - `ResizeCommandPTY`
@@ -310,16 +232,27 @@ The SDK exposes low-level request methods plus higher-level workflow helpers.
 
 ### Configuration and filesystem
 
+Read and update config, requirements, external-agent migration data, and filesystem state.
+
 - `ReadConfig`, `WriteConfigValue`, `BatchWriteConfig`, `ReadConfigRequirements`
 - `DetectExternalAgentConfig`, `ImportExternalAgentConfig`
 - `ReadFile`, `WriteFile`, `CreateDirectory`, `GetMetadata`, `ReadDirectory`, `RemovePath`, `CopyPath`
 
 ### Skills, plugins, apps, and MCP
 
+Work with skills, plugin metadata, apps/connectors, and MCP server integration.
+
 - `ListSkills`, `WriteSkillsConfig`
 - `ListPlugins`, `ReadPlugin`
 - `ListApps`
 - `StartMCPOAuthLogin`, `ReloadMCPServerConfig`, `ListMCPServerStatus`
+
+### Feedback and platform helpers
+
+Submit feedback and trigger platform-specific helper flows.
+
+- `UploadFeedback`
+- `StartWindowsSandboxSetup`
 
 ## Error Handling
 
