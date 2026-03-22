@@ -398,6 +398,32 @@ func TestUnarchiveThreadWithRealCodex(t *testing.T) {
 	t.Fatalf("expected unarchived thread %q in active list, got %#v", started.Thread.ID, activeList.Data)
 }
 
+func TestUnsubscribeThreadWithRealCodex(t *testing.T) {
+	requireCodex(t)
+
+	client, _ := startTestClient(t, false)
+	defer func() {
+		_ = client.Close()
+	}()
+
+	started, err := client.StartThread(context.Background(), ThreadStartParams{})
+	if err != nil {
+		t.Fatalf("StartThread returned error: %v", err)
+	}
+
+	result, err := client.UnsubscribeThread(context.Background(), ThreadUnsubscribeParams{
+		ThreadID: started.Thread.ID,
+	})
+	if err != nil {
+		t.Fatalf("UnsubscribeThread returned error: %v", err)
+	}
+	switch result.Status {
+	case ThreadUnsubscribeStatusUnsubscribed, ThreadUnsubscribeStatusNotSubscribed, ThreadUnsubscribeStatusNotLoaded:
+	default:
+		t.Fatalf("unexpected unsubscribe status: %#v", result)
+	}
+}
+
 func TestProcessExitReturnsErrorWhenRestartDisabled(t *testing.T) {
 	requireCodex(t)
 
@@ -677,6 +703,14 @@ func TestCoreTypeDecoding(t *testing.T) {
 	}
 	if threadUnarchiveResult.Thread.ID != "thr_restored" || threadUnarchiveResult.Thread.Status == nil || threadUnarchiveResult.Thread.Status.Type != "idle" {
 		t.Fatalf("unexpected thread unarchive result: %#v", threadUnarchiveResult)
+	}
+
+	var threadUnsubscribeResult ThreadUnsubscribeResult
+	if err := json.Unmarshal([]byte(`{"status":"unsubscribed"}`), &threadUnsubscribeResult); err != nil {
+		t.Fatalf("unmarshal thread unsubscribe result: %v", err)
+	}
+	if threadUnsubscribeResult.Status != ThreadUnsubscribeStatusUnsubscribed {
+		t.Fatalf("unexpected thread unsubscribe result: %#v", threadUnsubscribeResult)
 	}
 }
 
