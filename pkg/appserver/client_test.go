@@ -947,6 +947,54 @@ func TestReadConfigWithRealCodex(t *testing.T) {
 	}
 }
 
+func TestWriteConfigValueWithRealCodex(t *testing.T) {
+	requireCodex(t)
+
+	tempDir := t.TempDir()
+	configHome := tempDir + "/codex-home"
+	if err := os.MkdirAll(configHome, 0o755); err != nil {
+		t.Fatalf("MkdirAll returned error: %v", err)
+	}
+
+	client, _, err := StartStdio(context.Background(), StartOptions{
+		ClientInfo: ClientInfo{
+			Name:    "sdk_test",
+			Title:   "SDK Test",
+			Version: "0.1.0",
+		},
+		Env: append(os.Environ(), "CODEX_HOME="+configHome),
+	})
+	if err != nil {
+		t.Fatalf("StartStdio returned error: %v", err)
+	}
+	defer func() {
+		_ = client.Close()
+	}()
+
+	configPath := configHome + "/config.toml"
+	if err := os.WriteFile(configPath, []byte("model = \"gpt-5.4\"\n"), 0o600); err != nil {
+		t.Fatalf("WriteFile returned error: %v", err)
+	}
+
+	result, err := client.WriteConfigValue(context.Background(), ConfigWriteParams{
+		KeyPath:       "model",
+		MergeStrategy: ConfigMergeStrategyReplace,
+		Value:         "gpt-5.4",
+	})
+	if err != nil {
+		t.Fatalf("WriteConfigValue returned error: %v", err)
+	}
+	if result == nil || result.FilePath == "" || result.Version == "" {
+		t.Fatalf("expected config write result metadata: %#v", result)
+	}
+	if result.Status != ConfigWriteStatusOK && result.Status != ConfigWriteStatusOKOverridden {
+		t.Fatalf("unexpected config write status: %#v", result)
+	}
+	if result.FilePath != configPath {
+		t.Fatalf("expected config path %q, got %#v", configPath, result)
+	}
+}
+
 func TestListPluginsWithRealCodex(t *testing.T) {
 	requireCodex(t)
 
@@ -1291,6 +1339,18 @@ func TestCoreTypeDecoding(t *testing.T) {
 	}
 	if configResult.Config["model"] != "gpt-5.4" {
 		t.Fatalf("unexpected config model: %#v", configResult.Config["model"])
+	}
+
+	var configWriteResult ConfigWriteResult
+	if err := json.Unmarshal([]byte(`{
+		"filePath":"/tmp/config.toml",
+		"status":"ok",
+		"version":"v1"
+	}`), &configWriteResult); err != nil {
+		t.Fatalf("unmarshal config write result: %v", err)
+	}
+	if configWriteResult.FilePath != "/tmp/config.toml" || configWriteResult.Status != ConfigWriteStatusOK || configWriteResult.Version != "v1" {
+		t.Fatalf("unexpected config write result: %#v", configWriteResult)
 	}
 
 	var modelListResult ModelListResult
