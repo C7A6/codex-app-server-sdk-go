@@ -919,6 +919,35 @@ func TestWriteSkillsConfigWithRealCodex(t *testing.T) {
 	}
 }
 
+func TestListPluginsWithRealCodex(t *testing.T) {
+	requireCodex(t)
+
+	client, _ := startTestClient(t, false)
+	defer func() {
+		_ = client.Close()
+	}()
+
+	cwd, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("Getwd returned error: %v", err)
+	}
+
+	result, err := client.ListPlugins(context.Background(), PluginListParams{
+		Cwds: []string{cwd},
+	})
+	if err != nil {
+		t.Fatalf("ListPlugins returned error: %v", err)
+	}
+	if result == nil {
+		t.Fatal("expected plugin list result")
+	}
+	for _, marketplace := range result.Marketplaces {
+		if marketplace.Name == "" || marketplace.Path == "" {
+			t.Fatalf("expected marketplace metadata: %#v", marketplace)
+		}
+	}
+}
+
 func TestProcessExitReturnsErrorWhenRestartDisabled(t *testing.T) {
 	requireCodex(t)
 
@@ -1314,6 +1343,29 @@ func TestCoreTypeDecoding(t *testing.T) {
 	}
 	if !skillsConfigWriteResult.EffectiveEnabled {
 		t.Fatalf("unexpected skills config write result: %#v", skillsConfigWriteResult)
+	}
+
+	var pluginListResult PluginListResult
+	if err := json.Unmarshal([]byte(`{
+		"marketplaces":[{
+			"name":"official",
+			"path":"/tmp/marketplace",
+			"plugins":[{
+				"id":"plugin_1",
+				"name":"demo",
+				"authPolicy":"ON_USE",
+				"installPolicy":"AVAILABLE",
+				"installed":false,
+				"enabled":false,
+				"source":{"type":"local","path":"/tmp/plugin"}
+			}]
+		}],
+		"remoteSyncError":null
+	}`), &pluginListResult); err != nil {
+		t.Fatalf("unmarshal plugin list result: %v", err)
+	}
+	if len(pluginListResult.Marketplaces) != 1 || len(pluginListResult.Marketplaces[0].Plugins) != 1 || pluginListResult.Marketplaces[0].Plugins[0].Name != "demo" {
+		t.Fatalf("unexpected plugin list result: %#v", pluginListResult)
 	}
 }
 
