@@ -128,6 +128,41 @@ type ConfigReadResult struct {
 	Origins map[string]ConfigLayerMetadata `json:"origins"`
 }
 
+type ConfigMergeStrategy string
+
+const (
+	ConfigMergeStrategyReplace ConfigMergeStrategy = "replace"
+	ConfigMergeStrategyUpsert  ConfigMergeStrategy = "upsert"
+)
+
+type ConfigWriteParams struct {
+	ExpectedVersion *string             `json:"expectedVersion,omitempty"`
+	FilePath        *string             `json:"filePath,omitempty"`
+	KeyPath         string              `json:"keyPath"`
+	MergeStrategy   ConfigMergeStrategy `json:"mergeStrategy"`
+	Value           any                 `json:"value"`
+}
+
+type ConfigWriteStatus string
+
+const (
+	ConfigWriteStatusOK           ConfigWriteStatus = "ok"
+	ConfigWriteStatusOKOverridden ConfigWriteStatus = "okOverridden"
+)
+
+type ConfigWriteOverriddenMetadata struct {
+	EffectiveValue  any                 `json:"effectiveValue"`
+	Message         string              `json:"message"`
+	OverridingLayer ConfigLayerMetadata `json:"overridingLayer"`
+}
+
+type ConfigWriteResult struct {
+	FilePath           string                         `json:"filePath"`
+	OverriddenMetadata *ConfigWriteOverriddenMetadata `json:"overriddenMetadata,omitempty"`
+	Status             ConfigWriteStatus              `json:"status"`
+	Version            string                         `json:"version"`
+}
+
 type SkillsListExtraRootsForCwd struct {
 	Cwd            string   `json:"cwd"`
 	ExtraUserRoots []string `json:"extraUserRoots"`

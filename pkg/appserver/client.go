@@ -400,6 +400,14 @@ func (c *Client) ReadConfig(ctx context.Context, params ConfigReadParams) (*Conf
 	return result, nil
 }
 
+func (c *Client) WriteConfigValue(ctx context.Context, params ConfigWriteParams) (*ConfigWriteResult, error) {
+	result := &ConfigWriteResult{}
+	if err := c.Call(ctx, "config/value/write", params, result); err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
 func (c *Client) ListPlugins(ctx context.Context, params PluginListParams) (*PluginListResult, error) {
 	result := &PluginListResult{}
 	if err := c.Call(ctx, "plugin/list", params, result); err != nil {
