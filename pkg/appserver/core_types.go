@@ -152,3 +152,20 @@ type ThreadResumeParams struct {
 }
 
 type ThreadResumeResult = ThreadStartResult
+
+type ThreadForkParams struct {
+	ThreadID              string         `json:"threadId"`
+	ApprovalPolicy        any            `json:"approvalPolicy,omitempty"`
+	ApprovalsReviewer     *string        `json:"approvalsReviewer,omitempty"`
+	BaseInstructions      *string        `json:"baseInstructions,omitempty"`
+	Config                map[string]any `json:"config,omitempty"`
+	Cwd                   *string        `json:"cwd,omitempty"`
+	DeveloperInstructions *string        `json:"developerInstructions,omitempty"`
+	Ephemeral             bool           `json:"ephemeral"`
+	Model                 *string        `json:"model,omitempty"`
+	ModelProvider         *string        `json:"modelProvider,omitempty"`
+	ServiceTier           *string        `json:"serviceTier,omitempty"`
+	Sandbox               *string        `json:"sandbox,omitempty"`
+}
+
+type ThreadForkResult = ThreadStartResult

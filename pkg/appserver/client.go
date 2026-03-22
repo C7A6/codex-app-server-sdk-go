@@ -232,6 +232,14 @@ func (c *Client) ResumeThread(ctx context.Context, params ThreadResumeParams) (*
 	return result, nil
 }
 
+func (c *Client) ForkThread(ctx context.Context, params ThreadForkParams) (*ThreadForkResult, error) {
+	result := &ThreadForkResult{}
+	if err := c.Call(ctx, "thread/fork", params, result); err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
 func (c *Client) Close() error {
 	c.mu.Lock()
 	if c.closed {
