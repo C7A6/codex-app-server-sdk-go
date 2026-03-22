@@ -18,6 +18,12 @@ let
   goEnv = mkGoEnv { pwd = ./.; };
 in
 pkgs.mkShell {
+  nativeBuildInputs = with pkgs; [
+    gopls
+    go-tools
+    gotools
+    golangci-lint
+  ];
   packages = [
     goEnv
     gomod2nix
