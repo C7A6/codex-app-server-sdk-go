@@ -50,7 +50,7 @@
 ### Thread Lifecycle
 
 - [x] `StartThread`: Why a new conversation must begin with an explicit thread object. How call `thread/start`, accept model and thread settings, and decode the created thread payload.
-- [ ] `ResumeThread`: Why clients need to continue an existing conversation. How call `thread/resume` with a thread ID and return the resumed thread state.
+- [x] `ResumeThread`: Why clients need to continue an existing conversation. How call `thread/resume` with a thread ID and return the resumed thread state.
 - [ ] `ForkThread`: Why callers may branch an existing conversation into a new history line. How call `thread/fork` and decode the new thread descriptor.
 - [ ] `ReadThread`: Why stored threads must be readable without loading them into memory. How call `thread/read` and support the `includeTurns` flag.
 - [ ] `ListThreads`: Why clients need pagination and filtering for thread history UIs. How call `thread/list` with cursor, limit, sort, provider, source, archive, and cwd filters.
