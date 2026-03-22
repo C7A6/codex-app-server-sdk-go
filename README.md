@@ -3,6 +3,7 @@
 [![Go Version](https://img.shields.io/badge/go-1.26+-blue.svg)](#installation)
 [![License](https://img.shields.io/badge/license-Apache%202.0-green.svg)](#license)
 [![CI](https://img.shields.io/badge/ci-placeholder-lightgrey.svg)](#contributing)
+[![Go Reference](https://pkg.go.dev/badge/github.com/C7A6/codex-app-server-sdk-go.svg)](https://pkg.go.dev/github.com/C7A6/codex-app-server-sdk-go)
 
 Go SDK for `codex app-server`.
 
