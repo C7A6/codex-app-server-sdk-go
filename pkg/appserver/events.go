@@ -81,9 +81,24 @@ type ThreadNameUpdatedEvent struct {
 
 func (ThreadNameUpdatedEvent) NotificationMethod() string { return MethodThreadNameUpdated }
 
+type TokenUsageBreakdown struct {
+	CachedInputTokens     int64 `json:"cachedInputTokens"`
+	InputTokens           int64 `json:"inputTokens"`
+	OutputTokens          int64 `json:"outputTokens"`
+	ReasoningOutputTokens int64 `json:"reasoningOutputTokens"`
+	TotalTokens           int64 `json:"totalTokens"`
+}
+
+type ThreadTokenUsage struct {
+	Last               TokenUsageBreakdown `json:"last"`
+	ModelContextWindow *int64              `json:"modelContextWindow,omitempty"`
+	Total              TokenUsageBreakdown `json:"total"`
+}
+
 type ThreadTokenUsageUpdatedEvent struct {
-	ThreadID   string          `json:"threadId"`
-	TokenUsage json.RawMessage `json:"tokenUsage"`
+	ThreadID   string           `json:"threadId"`
+	TurnID     string           `json:"turnId"`
+	TokenUsage ThreadTokenUsage `json:"tokenUsage"`
 }
 
 func (ThreadTokenUsageUpdatedEvent) NotificationMethod() string { return MethodThreadTokenUsageUpdated }
@@ -103,9 +118,9 @@ type TurnCompletedEvent struct {
 func (TurnCompletedEvent) NotificationMethod() string { return MethodTurnCompleted }
 
 type TurnDiffUpdatedEvent struct {
-	ThreadID string          `json:"threadId"`
-	TurnID   string          `json:"turnId"`
-	Diff     json.RawMessage `json:"diff"`
+	ThreadID string `json:"threadId"`
+	TurnID   string `json:"turnId"`
+	Diff     string `json:"diff"`
 }
 
 func (TurnDiffUpdatedEvent) NotificationMethod() string { return MethodTurnDiffUpdated }
@@ -142,6 +157,7 @@ type AgentMessageDeltaEvent struct {
 }
 
 func (AgentMessageDeltaEvent) NotificationMethod() string { return MethodItemAgentMessageDelta }
+func (AgentMessageDeltaEvent) itemDeltaEvent()            {}
 
 type PlanDeltaEvent struct {
 	ItemID string `json:"itemId"`
@@ -150,6 +166,7 @@ type PlanDeltaEvent struct {
 }
 
 func (PlanDeltaEvent) NotificationMethod() string { return MethodItemPlanDelta }
+func (PlanDeltaEvent) itemDeltaEvent()            {}
 
 type ReasoningSummaryTextDeltaEvent struct {
 	ItemID       string `json:"itemId"`
@@ -162,6 +179,7 @@ type ReasoningSummaryTextDeltaEvent struct {
 func (ReasoningSummaryTextDeltaEvent) NotificationMethod() string {
 	return MethodItemReasoningSummaryDelta
 }
+func (ReasoningSummaryTextDeltaEvent) itemDeltaEvent() {}
 
 type ReasoningSummaryPartAddedEvent struct {
 	ItemID       string `json:"itemId"`
@@ -173,6 +191,7 @@ type ReasoningSummaryPartAddedEvent struct {
 func (ReasoningSummaryPartAddedEvent) NotificationMethod() string {
 	return MethodItemReasoningPartAdded
 }
+func (ReasoningSummaryPartAddedEvent) itemDeltaEvent() {}
 
 type ReasoningTextDeltaEvent struct {
 	ContentIndex int64  `json:"contentIndex"`
@@ -183,6 +202,7 @@ type ReasoningTextDeltaEvent struct {
 }
 
 func (ReasoningTextDeltaEvent) NotificationMethod() string { return MethodItemReasoningTextDelta }
+func (ReasoningTextDeltaEvent) itemDeltaEvent()            {}
 
 type CommandExecutionOutputDeltaEvent struct {
 	ItemID   string `json:"itemId,omitempty"`
@@ -195,6 +215,7 @@ type CommandExecutionOutputDeltaEvent struct {
 func (CommandExecutionOutputDeltaEvent) NotificationMethod() string {
 	return MethodItemCommandOutputDelta
 }
+func (CommandExecutionOutputDeltaEvent) itemDeltaEvent() {}
 
 type FileChangeOutputDeltaEvent struct {
 	ItemID   string `json:"itemId"`
@@ -204,6 +225,7 @@ type FileChangeOutputDeltaEvent struct {
 }
 
 func (FileChangeOutputDeltaEvent) NotificationMethod() string { return MethodItemFileChangeOutputDelta }
+func (FileChangeOutputDeltaEvent) itemDeltaEvent()            {}
 
 type AccountLoginCompletedEvent struct {
 	LoginID *string `json:"loginId"`
@@ -221,7 +243,7 @@ type AccountUpdatedEvent struct {
 func (AccountUpdatedEvent) NotificationMethod() string { return MethodAccountUpdated }
 
 type AccountRateLimitsUpdatedEvent struct {
-	RateLimits json.RawMessage `json:"rateLimits"`
+	RateLimits RateLimitBucket `json:"rateLimits"`
 }
 
 func (AccountRateLimitsUpdatedEvent) NotificationMethod() string {
