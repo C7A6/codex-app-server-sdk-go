@@ -24,6 +24,7 @@ pkgs.mkShell {
     gotools
     golangci-lint
     gh
+    xc
   ];
   packages = [
     goEnv
