@@ -122,7 +122,7 @@
 
 ### Notifications And Streaming Events
 
-- [ ] `RegisterNotificationHandler`: Why the protocol is bidirectional and event-heavy. How expose a dispatcher that routes server notifications by method name to typed handlers.
+- [x] `RegisterNotificationHandler`: Why the protocol is bidirectional and event-heavy. How expose a dispatcher that routes server notifications by method name to typed handlers.
 - [ ] `HandleThreadEvents`: Why thread creation, archive, unarchive, close, and status changes are server-driven. How decode `thread/started`, `thread/archived`, `thread/unarchived`, `thread/closed`, and `thread/status/changed`.
 - [ ] `HandleTurnEvents`: Why turn progress must be streamed to clients in real time. How decode `turn/started`, `turn/completed`, `turn/diff/updated`, `turn/plan/updated`, and `thread/tokenUsage/updated`.
 - [ ] `HandleItemEvents`: Why all granular work units arrive through item notifications. How decode `item/started` and `item/completed` into typed item unions.
