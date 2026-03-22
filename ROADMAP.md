@@ -43,7 +43,7 @@
 
 ### Model Discovery
 
-- [ ] `ListModels`: Why clients need model metadata before rendering selectors or picking defaults. How call `model/list`, support pagination flags, and decode reasoning and modality metadata.
+- [x] `ListModels`: Why clients need model metadata before rendering selectors or picking defaults. How call `model/list`, support pagination flags, and decode reasoning and modality metadata.
 - [ ] `ListExperimentalFeatures`: Why integrations may surface or gate preview functionality. How call `experimentalFeature/list` and map lifecycle metadata into typed results.
 - [ ] `ListCollaborationModes`: Why callers may need to enumerate supported collaboration presets. How call `collaborationMode/list` and decode the non-paginated response.
 
