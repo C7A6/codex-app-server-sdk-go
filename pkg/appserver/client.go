@@ -360,6 +360,14 @@ func (c *Client) WriteCommandStdin(ctx context.Context, params CommandExecWriteP
 	return result, nil
 }
 
+func (c *Client) ResizeCommandPTY(ctx context.Context, params CommandExecResizeParams) (*CommandExecResizeResult, error) {
+	result := &CommandExecResizeResult{}
+	if err := c.Call(ctx, "command/exec/resize", params, result); err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
 func (c *Client) Close() error {
 	c.mu.Lock()
 	if c.closed {

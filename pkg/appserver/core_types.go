@@ -98,6 +98,13 @@ type CommandExecWriteParams struct {
 
 type CommandExecWriteResult struct{}
 
+type CommandExecResizeParams struct {
+	ProcessID string                  `json:"processId"`
+	Size      CommandExecTerminalSize `json:"size"`
+}
+
+type CommandExecResizeResult struct{}
+
 type ConfigValueMap map[string]any
 
 type ConfigLayer map[string]any
