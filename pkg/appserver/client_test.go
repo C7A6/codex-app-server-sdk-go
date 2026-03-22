@@ -424,6 +424,26 @@ func TestUnsubscribeThreadWithRealCodex(t *testing.T) {
 	}
 }
 
+func TestCompactThreadWithRealCodex(t *testing.T) {
+	requireCodex(t)
+
+	client, _ := startTestClient(t, false)
+	started := createPersistedThread(t, client)
+	defer func() {
+		_ = client.Close()
+	}()
+
+	result, err := client.CompactThread(context.Background(), ThreadCompactStartParams{
+		ThreadID: started.Thread.ID,
+	})
+	if err != nil {
+		t.Fatalf("CompactThread returned error: %v", err)
+	}
+	if result == nil {
+		t.Fatal("expected non-nil compact result")
+	}
+}
+
 func TestProcessExitReturnsErrorWhenRestartDisabled(t *testing.T) {
 	requireCodex(t)
 
@@ -711,6 +731,11 @@ func TestCoreTypeDecoding(t *testing.T) {
 	}
 	if threadUnsubscribeResult.Status != ThreadUnsubscribeStatusUnsubscribed {
 		t.Fatalf("unexpected thread unsubscribe result: %#v", threadUnsubscribeResult)
+	}
+
+	var threadCompactStartResult ThreadCompactStartResult
+	if err := json.Unmarshal([]byte(`{}`), &threadCompactStartResult); err != nil {
+		t.Fatalf("unmarshal thread compact start result: %v", err)
 	}
 }
 
