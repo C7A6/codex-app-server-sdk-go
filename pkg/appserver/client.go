@@ -208,6 +208,14 @@ func (c *Client) ReadRateLimits(ctx context.Context) (*RateLimitsReadResult, err
 	return result, nil
 }
 
+func (c *Client) ListModels(ctx context.Context, params ModelListParams) (*ModelListResult, error) {
+	result := &ModelListResult{}
+	if err := c.Call(ctx, "model/list", params, result); err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
 func (c *Client) Close() error {
 	c.mu.Lock()
 	if c.closed {

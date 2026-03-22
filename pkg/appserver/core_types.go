@@ -64,3 +64,46 @@ type ConfigReadResult struct {
 	Layers  []ConfigLayer                  `json:"layers,omitempty"`
 	Origins map[string]ConfigLayerMetadata `json:"origins"`
 }
+
+type ModelListParams struct {
+	Cursor        *string `json:"cursor,omitempty"`
+	IncludeHidden *bool   `json:"includeHidden,omitempty"`
+	Limit         *uint32 `json:"limit,omitempty"`
+}
+
+type ReasoningEffortOption struct {
+	ReasoningEffort string `json:"reasoningEffort"`
+	Description     string `json:"description"`
+}
+
+type ModelAvailabilityNux struct {
+	Message string `json:"message"`
+}
+
+type ModelUpgradeInfo struct {
+	Model             string  `json:"model"`
+	MigrationMarkdown *string `json:"migrationMarkdown,omitempty"`
+	ModelLink         *string `json:"modelLink,omitempty"`
+	UpgradeCopy       *string `json:"upgradeCopy,omitempty"`
+}
+
+type ModelInfo struct {
+	ID                        string                  `json:"id"`
+	Model                     string                  `json:"model"`
+	DisplayName               string                  `json:"displayName"`
+	Description               string                  `json:"description"`
+	Hidden                    bool                    `json:"hidden"`
+	IsDefault                 bool                    `json:"isDefault"`
+	DefaultReasoningEffort    string                  `json:"defaultReasoningEffort"`
+	SupportedReasoningEfforts []ReasoningEffortOption `json:"supportedReasoningEfforts"`
+	InputModalities           []string                `json:"inputModalities,omitempty"`
+	SupportsPersonality       bool                    `json:"supportsPersonality,omitempty"`
+	Upgrade                   *string                 `json:"upgrade,omitempty"`
+	UpgradeInfo               *ModelUpgradeInfo       `json:"upgradeInfo,omitempty"`
+	AvailabilityNux           *ModelAvailabilityNux   `json:"availabilityNux,omitempty"`
+}
+
+type ModelListResult struct {
+	Data       []ModelInfo `json:"data"`
+	NextCursor *string     `json:"nextCursor,omitempty"`
+}
