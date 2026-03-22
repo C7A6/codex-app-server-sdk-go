@@ -363,6 +363,122 @@ func TestCommandExecRejectsEmptyCommand(t *testing.T) {
 	}
 }
 
+func TestSendMessageAndWaitWithRealCodex(t *testing.T) {
+	requireCodex(t)
+
+	client, _ := startTempDirClient(t, false, nil)
+	defer func() {
+		_ = client.Close()
+	}()
+
+	started, err := client.StartThread(context.Background(), ThreadStartParams{})
+	if err != nil {
+		t.Fatalf("StartThread returned error: %v", err)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 90*time.Second)
+	defer cancel()
+
+	completed, err := client.SendMessageAndWait(ctx, started.Thread.ID, "Say hello in one sentence.")
+	if err != nil {
+		t.Fatalf("SendMessageAndWait returned error: %v", err)
+	}
+	if completed.ThreadID != started.Thread.ID {
+		t.Fatalf("unexpected thread id: %#v", completed)
+	}
+	if completed.Turn.ID == "" || completed.Turn.Status == "" {
+		t.Fatalf("unexpected completed turn payload: %#v", completed)
+	}
+}
+
+func TestStreamTurnWithRealCodex(t *testing.T) {
+	requireCodex(t)
+
+	client, _ := startTempDirClient(t, false, nil)
+	defer func() {
+		_ = client.Close()
+	}()
+
+	started, err := client.StartThread(context.Background(), ThreadStartParams{})
+	if err != nil {
+		t.Fatalf("StartThread returned error: %v", err)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 90*time.Second)
+	defer cancel()
+
+	events, turnStart, err := client.StreamTurn(ctx, TurnStartParams{
+		ThreadID: started.Thread.ID,
+		Input: []TurnStartInputItem{
+			{"type": "text", "text": "Summarize this thread."},
+		},
+	})
+	if err != nil {
+		t.Fatalf("StreamTurn returned error: %v", err)
+	}
+	if turnStart == nil || turnStart.Turn.ID == "" {
+		t.Fatalf("unexpected turn start result: %#v", turnStart)
+	}
+
+	sawCompleted := false
+	sawTurnLifecycle := false
+	sawItemLifecycle := false
+
+	for event := range events {
+		switch typed := event.(type) {
+		case *TurnStartedEvent:
+			if typed.ThreadID == started.Thread.ID {
+				sawTurnLifecycle = true
+			}
+		case *TurnCompletedEvent:
+			if typed.ThreadID == started.Thread.ID && typed.Turn.ID == turnStart.Turn.ID {
+				sawCompleted = true
+			}
+		case *ItemStartedEvent:
+			if typed.ThreadID == started.Thread.ID && typed.TurnID == turnStart.Turn.ID {
+				sawItemLifecycle = true
+			}
+		case *ItemCompletedEvent:
+			if typed.ThreadID == started.Thread.ID && typed.TurnID == turnStart.Turn.ID {
+				sawItemLifecycle = true
+			}
+		}
+	}
+
+	if !sawCompleted {
+		t.Fatal("expected streamed turn/completed event")
+	}
+	if !sawTurnLifecycle {
+		t.Fatal("expected streamed turn lifecycle event")
+	}
+	if !sawItemLifecycle {
+		t.Fatal("expected streamed item lifecycle event")
+	}
+}
+
+func TestQuickThreadWithRealCodex(t *testing.T) {
+	requireCodex(t)
+
+	client, _ := startTempDirClient(t, false, nil)
+	defer func() {
+		_ = client.Close()
+	}()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 90*time.Second)
+	defer cancel()
+
+	thread, completed, err := client.QuickThread(ctx, ThreadStartParams{}, "Explain what this assistant does.")
+	if err != nil {
+		t.Fatalf("QuickThread returned error: %v", err)
+	}
+	if thread == nil || thread.Thread.ID == "" {
+		t.Fatalf("unexpected thread result: %#v", thread)
+	}
+	if completed == nil || completed.ThreadID != thread.Thread.ID {
+		t.Fatalf("unexpected completed turn result: %#v", completed)
+	}
+}
+
 func startTempDirClient(t *testing.T, restartOnFailure bool, mutate func(*StartOptions)) (*Client, *InitializeResult) {
 	t.Helper()
 
