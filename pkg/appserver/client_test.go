@@ -74,6 +74,34 @@ func TestReadAccountAndRateLimitsWithRealCodex(t *testing.T) {
 	}
 }
 
+func TestListModelsWithRealCodex(t *testing.T) {
+	requireCodex(t)
+
+	client, _ := startTestClient(t, false)
+	defer func() {
+		_ = client.Close()
+	}()
+
+	limit := uint32(10)
+	includeHidden := false
+	models, err := client.ListModels(context.Background(), ModelListParams{
+		Limit:         &limit,
+		IncludeHidden: &includeHidden,
+	})
+	if err != nil {
+		t.Fatalf("ListModels returned error: %v", err)
+	}
+	if models == nil || len(models.Data) == 0 {
+		t.Fatal("expected at least one model")
+	}
+	if models.Data[0].ID == "" || models.Data[0].Model == "" || models.Data[0].DisplayName == "" {
+		t.Fatalf("unexpected model payload: %#v", models.Data[0])
+	}
+	if len(models.Data[0].SupportedReasoningEfforts) == 0 {
+		t.Fatalf("expected reasoning effort metadata: %#v", models.Data[0])
+	}
+}
+
 func TestProcessExitReturnsErrorWhenRestartDisabled(t *testing.T) {
 	requireCodex(t)
 
@@ -228,6 +256,28 @@ func TestCoreTypeDecoding(t *testing.T) {
 	}
 	if configResult.Config["model"] != "gpt-5.4" {
 		t.Fatalf("unexpected config model: %#v", configResult.Config["model"])
+	}
+
+	var modelListResult ModelListResult
+	if err := json.Unmarshal([]byte(`{
+		"data":[{
+			"id":"gpt-5.4",
+			"model":"gpt-5.4",
+			"displayName":"GPT-5.4",
+			"description":"test model",
+			"hidden":false,
+			"isDefault":true,
+			"defaultReasoningEffort":"medium",
+			"supportedReasoningEfforts":[{"reasoningEffort":"low","description":"Lower latency"}],
+			"inputModalities":["text","image"],
+			"supportsPersonality":true
+		}],
+		"nextCursor":null
+	}`), &modelListResult); err != nil {
+		t.Fatalf("unmarshal model list result: %v", err)
+	}
+	if len(modelListResult.Data) != 1 || modelListResult.Data[0].ID != "gpt-5.4" {
+		t.Fatalf("unexpected model list result: %#v", modelListResult)
 	}
 }
 
