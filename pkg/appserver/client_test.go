@@ -2,6 +2,7 @@ package appserver
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"os/exec"
 	"testing"
@@ -116,6 +117,55 @@ func TestProcessExitRestartsWhenEnabled(t *testing.T) {
 	restartedPID := currentPID(t, client)
 	if restartedPID == initialPID {
 		t.Fatalf("expected restarted process pid to change, got %d", restartedPID)
+	}
+}
+
+func TestRegisterNotificationHandlerReceivesThreadStarted(t *testing.T) {
+	requireCodex(t)
+
+	client, _ := startTestClient(t, false)
+	defer func() {
+		_ = client.Close()
+	}()
+
+	type threadStartedNotification struct {
+		Thread struct {
+			ID string `json:"id"`
+		} `json:"thread"`
+	}
+
+	received := make(chan threadStartedNotification, 1)
+	unregister, err := client.RegisterNotificationHandler("thread/started", func(ctx context.Context, notification Notification) {
+		var payload threadStartedNotification
+		if err := notification.DecodeParams(&payload); err != nil {
+			t.Errorf("DecodeParams returned error: %v", err)
+			return
+		}
+		select {
+		case received <- payload:
+		default:
+		}
+	})
+	if err != nil {
+		t.Fatalf("RegisterNotificationHandler returned error: %v", err)
+	}
+	defer unregister()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	var result json.RawMessage
+	if err := client.Call(ctx, "thread/start", map[string]any{}, &result); err != nil {
+		t.Fatalf("thread/start returned error: %v", err)
+	}
+
+	select {
+	case notification := <-received:
+		if notification.Thread.ID == "" {
+			t.Fatal("expected thread ID in notification")
+		}
+	case <-ctx.Done():
+		t.Fatalf("timed out waiting for thread/started notification: %v", ctx.Err())
 	}
 }
 
