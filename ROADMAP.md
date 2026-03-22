@@ -85,7 +85,7 @@
 - [x] `ListApps`: Why connector UIs need a typed catalog of available apps. How call `app/list` with pagination and decode accessibility and enabled fields.
 - [x] `StartMCPOAuthLogin`: Why MCP servers may require an OAuth bootstrap flow. How call `mcpServer/oauth/login` and return the authorization URL and login context.
 - [x] `ReloadMCPServerConfig`: Why runtime MCP configuration may change on disk. How call `config/mcpServer/reload` and surface a simple success result.
-- [ ] `ListMCPServerStatus`: Why operators need visibility into MCP auth state and exposed tools. How call `mcpServerStatus/list` with cursor and limit support.
+- [x] `ListMCPServerStatus`: Why operators need visibility into MCP auth state and exposed tools. How call `mcpServerStatus/list` with cursor and limit support.
 
 ### Configuration And Filesystem
 
