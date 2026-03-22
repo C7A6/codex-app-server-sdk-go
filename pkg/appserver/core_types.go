@@ -234,3 +234,9 @@ type ThreadSetNameParams struct {
 }
 
 type ThreadSetNameResult struct{}
+
+type ThreadArchiveParams struct {
+	ThreadID string `json:"threadId"`
+}
+
+type ThreadArchiveResult struct{}

@@ -272,6 +272,14 @@ func (c *Client) SetThreadName(ctx context.Context, params ThreadSetNameParams) 
 	return result, nil
 }
 
+func (c *Client) ArchiveThread(ctx context.Context, params ThreadArchiveParams) (*ThreadArchiveResult, error) {
+	result := &ThreadArchiveResult{}
+	if err := c.Call(ctx, "thread/archive", params, result); err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
 func (c *Client) Close() error {
 	c.mu.Lock()
 	if c.closed {
