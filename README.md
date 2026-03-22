@@ -1,7 +1,7 @@
 # codex-app-server-sdk-go
 
 [![Go Version](https://img.shields.io/badge/go-1.26+-blue.svg)](#installation)
-[![License](https://img.shields.io/badge/license-MIT-green.svg)](#license)
+[![License](https://img.shields.io/badge/license-Apache%202.0-green.svg)](#license)
 [![CI](https://img.shields.io/badge/ci-placeholder-lightgrey.svg)](#contributing)
 
 Go SDK for `codex app-server`.
@@ -335,4 +335,18 @@ Useful references:
 
 ## License
 
-MIT. See [`LICENSE`](./LICENSE).
+Apache License 2.0. See [`LICENSE`](./LICENSE).
+
+## Tasks
+
+* Below is for [xc](https://github.com/joerdav/xc)
+
+### sync-codex-app-schema
+
+* Sync codex app schema to [api/codex-app-server](./api/codex-app-server)
+
+```bash
+#!/usr/bin/env bash
+
+codex app-server generate-json-schema --out api/codex-app-server
+```
