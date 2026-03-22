@@ -919,6 +919,34 @@ func TestWriteSkillsConfigWithRealCodex(t *testing.T) {
 	}
 }
 
+func TestReadConfigWithRealCodex(t *testing.T) {
+	requireCodex(t)
+
+	client, _ := startTestClient(t, false)
+	defer func() {
+		_ = client.Close()
+	}()
+
+	cwd, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("Getwd returned error: %v", err)
+	}
+
+	result, err := client.ReadConfig(context.Background(), ConfigReadParams{
+		Cwd:           &cwd,
+		IncludeLayers: true,
+	})
+	if err != nil {
+		t.Fatalf("ReadConfig returned error: %v", err)
+	}
+	if result == nil {
+		t.Fatal("expected config read result")
+	}
+	if result.Config == nil || result.Origins == nil {
+		t.Fatalf("expected config and origins: %#v", result)
+	}
+}
+
 func TestListPluginsWithRealCodex(t *testing.T) {
 	requireCodex(t)
 
