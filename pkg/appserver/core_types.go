@@ -11,6 +11,7 @@ type Thread struct {
 	ID     string        `json:"id"`
 	Name   *string       `json:"name,omitempty"`
 	Status *ThreadStatus `json:"status,omitempty"`
+	Turns  []Turn        `json:"turns,omitempty"`
 }
 
 type TurnError struct {
@@ -270,3 +271,12 @@ type ThreadCompactStartParams struct {
 }
 
 type ThreadCompactStartResult struct{}
+
+type ThreadRollbackParams struct {
+	ThreadID string `json:"threadId"`
+	NumTurns uint32 `json:"numTurns"`
+}
+
+type ThreadRollbackResult struct {
+	Thread Thread `json:"thread"`
+}

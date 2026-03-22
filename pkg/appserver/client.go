@@ -304,6 +304,14 @@ func (c *Client) CompactThread(ctx context.Context, params ThreadCompactStartPar
 	return result, nil
 }
 
+func (c *Client) RollbackThread(ctx context.Context, params ThreadRollbackParams) (*ThreadRollbackResult, error) {
+	result := &ThreadRollbackResult{}
+	if err := c.Call(ctx, "thread/rollback", params, result); err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
 func (c *Client) Close() error {
 	c.mu.Lock()
 	if c.closed {
