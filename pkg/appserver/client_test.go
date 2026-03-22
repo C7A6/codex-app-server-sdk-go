@@ -10,6 +10,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/sourcegraph/jsonrpc2"
 )
 
 func TestStartStdioInitializesConnection(t *testing.T) {
@@ -133,6 +135,36 @@ func TestListCollaborationModesWithRealCodex(t *testing.T) {
 				t.Fatalf("unexpected collaboration mode kind: %#v", mode)
 			}
 		}
+	}
+}
+
+func TestFeedbackAndWindowsWithRealCodex(t *testing.T) {
+	requireCodex(t)
+
+	client, _ := startTestClient(t, false)
+	defer func() {
+		_ = client.Close()
+	}()
+
+	feedbackResult, err := client.UploadFeedback(context.Background(), FeedbackUploadParams{
+		Classification: "bug",
+		IncludeLogs:    false,
+	})
+	if err != nil {
+		t.Fatalf("UploadFeedback returned error: %v", err)
+	}
+	if feedbackResult == nil || feedbackResult.ThreadID == "" {
+		t.Fatalf("expected feedback upload result: %#v", feedbackResult)
+	}
+
+	windowsResult, err := client.StartWindowsSandboxSetup(context.Background(), WindowsSandboxSetupStartParams{
+		Mode: WindowsSandboxSetupModeUnelevated,
+	})
+	if err != nil {
+		t.Fatalf("StartWindowsSandboxSetup returned error: %v", err)
+	}
+	if windowsResult == nil || !windowsResult.Started {
+		t.Fatalf("expected windows sandbox setup result: %#v", windowsResult)
 	}
 }
 
@@ -1596,25 +1628,133 @@ func TestRegisterNotificationHandlerReceivesThreadStarted(t *testing.T) {
 func TestDecodeNotificationEvent(t *testing.T) {
 	t.Parallel()
 
-	notification := Notification{
-		Method: MethodAccountLoginCompleted,
-		Params: json.RawMessage(`{"loginId":"login-123","success":true,"error":null}`),
+	testCases := []struct {
+		name   string
+		input  Notification
+		assert func(t *testing.T, event NotificationEvent)
+	}{
+		{
+			name: "account login completed",
+			input: Notification{
+				Method: MethodAccountLoginCompleted,
+				Params: json.RawMessage(`{"loginId":"login-123","success":true,"error":null}`),
+			},
+			assert: func(t *testing.T, event NotificationEvent) {
+				t.Helper()
+				loginCompleted, ok := event.(*AccountLoginCompletedEvent)
+				if !ok {
+					t.Fatalf("expected *AccountLoginCompletedEvent, got %T", event)
+				}
+				if loginCompleted.LoginID == nil || *loginCompleted.LoginID != "login-123" || !loginCompleted.Success {
+					t.Fatalf("unexpected login completed event: %#v", loginCompleted)
+				}
+			},
+		},
+		{
+			name: "windows sandbox completed",
+			input: Notification{
+				Method: MethodWindowsSandboxCompleted,
+				Params: json.RawMessage(`{"mode":"unelevated","success":true,"error":null}`),
+			},
+			assert: func(t *testing.T, event NotificationEvent) {
+				t.Helper()
+				completed, ok := event.(*WindowsSandboxSetupCompletedEvent)
+				if !ok {
+					t.Fatalf("expected *WindowsSandboxSetupCompletedEvent, got %T", event)
+				}
+				if completed.Mode != WindowsSandboxSetupModeUnelevated || !completed.Success {
+					t.Fatalf("unexpected windows sandbox event: %#v", completed)
+				}
+			},
+		},
+		{
+			name: "fuzzy session updated",
+			input: Notification{
+				Method: MethodFuzzyFileSearchUpdated,
+				Params: json.RawMessage(`{"sessionId":"sess-1","query":"roadmap","files":[{"file_name":"ROADMAP.md","path":"ROADMAP.md","root":"/tmp","score":99}]}`),
+			},
+			assert: func(t *testing.T, event NotificationEvent) {
+				t.Helper()
+				updated, ok := event.(*FuzzyFileSearchSessionUpdatedEvent)
+				if !ok {
+					t.Fatalf("expected *FuzzyFileSearchSessionUpdatedEvent, got %T", event)
+				}
+				if updated.SessionID != "sess-1" || len(updated.Files) != 1 || updated.Files[0].FileName != "ROADMAP.md" {
+					t.Fatalf("unexpected fuzzy session update: %#v", updated)
+				}
+			},
+		},
+		{
+			name: "fuzzy session completed",
+			input: Notification{
+				Method: MethodFuzzyFileSearchCompleted,
+				Params: json.RawMessage(`{"sessionId":"sess-1"}`),
+			},
+			assert: func(t *testing.T, event NotificationEvent) {
+				t.Helper()
+				completed, ok := event.(*FuzzyFileSearchSessionCompletedEvent)
+				if !ok {
+					t.Fatalf("expected *FuzzyFileSearchSessionCompletedEvent, got %T", event)
+				}
+				if completed.SessionID != "sess-1" {
+					t.Fatalf("unexpected fuzzy session completed: %#v", completed)
+				}
+			},
+		},
 	}
 
-	event, err := notification.DecodeEvent()
+	for _, tc := range testCases {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			event, err := tc.input.DecodeEvent()
+			if err != nil {
+				t.Fatalf("DecodeEvent returned error: %v", err)
+			}
+			tc.assert(t, event)
+		})
+	}
+}
+
+func TestToolRequestUserInputHandler(t *testing.T) {
+	t.Parallel()
+
+	client := &Client{}
+	if err := client.RegisterToolRequestUserInputHandler(func(ctx context.Context, params ToolRequestUserInputParams) (*ToolRequestUserInputResult, error) {
+		if params.ItemID != "item-1" || len(params.Questions) != 1 {
+			t.Fatalf("unexpected params: %#v", params)
+		}
+		return &ToolRequestUserInputResult{
+			Answers: map[string]ToolRequestUserInputAnswer{
+				"answer": {Answers: []string{"selected"}},
+			},
+		}, nil
+	}); err != nil {
+		t.Fatalf("RegisterToolRequestUserInputHandler returned error: %v", err)
+	}
+
+	params := json.RawMessage(`{
+		"itemId":"item-1",
+		"threadId":"thr-1",
+		"turnId":"turn-1",
+		"questions":[{"header":"Pick","id":"answer","question":"Choose one","options":[{"label":"A","description":"opt a"}]}]
+	}`)
+	result, handled, err := client.handleServerRequest(context.Background(), &jsonrpc2.Request{
+		Method: MethodToolRequestUserInput,
+		Params: &params,
+	})
 	if err != nil {
-		t.Fatalf("DecodeEvent returned error: %v", err)
+		t.Fatalf("handleServerRequest returned error: %v", err)
+	}
+	if !handled {
+		t.Fatal("expected request to be handled")
 	}
 
-	loginCompleted, ok := event.(*AccountLoginCompletedEvent)
+	typedResult, ok := result.(*ToolRequestUserInputResult)
 	if !ok {
-		t.Fatalf("expected *AccountLoginCompletedEvent, got %T", event)
+		t.Fatalf("expected *ToolRequestUserInputResult, got %T", result)
 	}
-	if loginCompleted.LoginID == nil || *loginCompleted.LoginID != "login-123" {
-		t.Fatalf("unexpected login ID: %#v", loginCompleted.LoginID)
-	}
-	if !loginCompleted.Success {
-		t.Fatal("expected success=true")
+	if len(typedResult.Answers["answer"].Answers) != 1 || typedResult.Answers["answer"].Answers[0] != "selected" {
+		t.Fatalf("unexpected request user input result: %#v", typedResult)
 	}
 }
 
@@ -1773,6 +1913,30 @@ func TestCoreTypeDecoding(t *testing.T) {
 	}
 	if len(collaborationModeListResult.Data) != 2 || collaborationModeListResult.Data[0].Mode == nil || *collaborationModeListResult.Data[0].Mode != CollaborationModeKindPlan {
 		t.Fatalf("unexpected collaboration mode list result: %#v", collaborationModeListResult)
+	}
+
+	var feedbackUploadResult FeedbackUploadResult
+	if err := json.Unmarshal([]byte(`{"threadId":"thr_feedback"}`), &feedbackUploadResult); err != nil {
+		t.Fatalf("unmarshal feedback upload result: %v", err)
+	}
+	if feedbackUploadResult.ThreadID != "thr_feedback" {
+		t.Fatalf("unexpected feedback upload result: %#v", feedbackUploadResult)
+	}
+
+	var windowsSandboxResult WindowsSandboxSetupStartResult
+	if err := json.Unmarshal([]byte(`{"started":true}`), &windowsSandboxResult); err != nil {
+		t.Fatalf("unmarshal windows sandbox result: %v", err)
+	}
+	if !windowsSandboxResult.Started {
+		t.Fatalf("unexpected windows sandbox result: %#v", windowsSandboxResult)
+	}
+
+	var toolRequestResult ToolRequestUserInputResult
+	if err := json.Unmarshal([]byte(`{"answers":{"q1":{"answers":["opt1"]}}}`), &toolRequestResult); err != nil {
+		t.Fatalf("unmarshal tool request user input result: %v", err)
+	}
+	if len(toolRequestResult.Answers["q1"].Answers) != 1 || toolRequestResult.Answers["q1"].Answers[0] != "opt1" {
+		t.Fatalf("unexpected tool request user input result: %#v", toolRequestResult)
 	}
 
 	var modelListResult ModelListResult
