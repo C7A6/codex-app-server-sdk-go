@@ -248,6 +248,14 @@ func (c *Client) ReadThread(ctx context.Context, params ThreadReadParams) (*Thre
 	return result, nil
 }
 
+func (c *Client) ListThreads(ctx context.Context, params ThreadListParams) (*ThreadListResult, error) {
+	result := &ThreadListResult{}
+	if err := c.Call(ctx, "thread/list", params, result); err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
 func (c *Client) Close() error {
 	c.mu.Lock()
 	if c.closed {

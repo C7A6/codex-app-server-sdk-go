@@ -178,3 +178,42 @@ type ThreadReadParams struct {
 type ThreadReadResult struct {
 	Thread Thread `json:"thread"`
 }
+
+type ThreadSortKey string
+
+const (
+	ThreadSortKeyCreatedAt ThreadSortKey = "created_at"
+	ThreadSortKeyUpdatedAt ThreadSortKey = "updated_at"
+)
+
+type ThreadSourceKind string
+
+const (
+	ThreadSourceKindCLI                 ThreadSourceKind = "cli"
+	ThreadSourceKindVSCode              ThreadSourceKind = "vscode"
+	ThreadSourceKindExec                ThreadSourceKind = "exec"
+	ThreadSourceKindAppServer           ThreadSourceKind = "appServer"
+	ThreadSourceKindCustom              ThreadSourceKind = "custom"
+	ThreadSourceKindSubAgent            ThreadSourceKind = "subAgent"
+	ThreadSourceKindSubAgentReview      ThreadSourceKind = "subAgentReview"
+	ThreadSourceKindSubAgentCompact     ThreadSourceKind = "subAgentCompact"
+	ThreadSourceKindSubAgentThreadSpawn ThreadSourceKind = "subAgentThreadSpawn"
+	ThreadSourceKindSubAgentOther       ThreadSourceKind = "subAgentOther"
+	ThreadSourceKindUnknown             ThreadSourceKind = "unknown"
+)
+
+type ThreadListParams struct {
+	Archived       *bool              `json:"archived,omitempty"`
+	Cursor         *string            `json:"cursor,omitempty"`
+	Cwd            *string            `json:"cwd,omitempty"`
+	Limit          *uint32            `json:"limit,omitempty"`
+	ModelProviders []string           `json:"modelProviders,omitempty"`
+	SearchTerm     *string            `json:"searchTerm,omitempty"`
+	SortKey        *ThreadSortKey     `json:"sortKey,omitempty"`
+	SourceKinds    []ThreadSourceKind `json:"sourceKinds,omitempty"`
+}
+
+type ThreadListResult struct {
+	Data       []Thread `json:"data"`
+	NextCursor *string  `json:"nextCursor,omitempty"`
+}
