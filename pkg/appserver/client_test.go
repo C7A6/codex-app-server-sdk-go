@@ -200,6 +200,41 @@ func TestReadThreadWithRealCodex(t *testing.T) {
 	}
 }
 
+func TestListThreadsWithRealCodex(t *testing.T) {
+	requireCodex(t)
+
+	client, _ := startTestClient(t, false)
+	started := createPersistedThread(t, client)
+	_ = client.Close()
+
+	listClient, _ := startTestClient(t, false)
+	defer func() {
+		_ = listClient.Close()
+	}()
+
+	limit := uint32(50)
+	archived := false
+	threads, err := listClient.ListThreads(context.Background(), ThreadListParams{
+		Archived: &archived,
+		Cwd:      &started.Cwd,
+		Limit:    &limit,
+	})
+	if err != nil {
+		t.Fatalf("ListThreads returned error: %v", err)
+	}
+	if threads == nil || len(threads.Data) == 0 {
+		t.Fatalf("expected at least one thread result: %#v", threads)
+	}
+
+	for _, thread := range threads.Data {
+		if thread.ID == started.Thread.ID {
+			return
+		}
+	}
+
+	t.Fatalf("expected listed threads to include %q, got %#v", started.Thread.ID, threads.Data)
+}
+
 func TestProcessExitReturnsErrorWhenRestartDisabled(t *testing.T) {
 	requireCodex(t)
 
@@ -434,6 +469,20 @@ func TestCoreTypeDecoding(t *testing.T) {
 	}
 	if threadReadResult.Thread.ID != "thr_read" || threadReadResult.Thread.Status == nil || threadReadResult.Thread.Status.Type != "idle" {
 		t.Fatalf("unexpected thread read result: %#v", threadReadResult)
+	}
+
+	var threadListResult ThreadListResult
+	if err := json.Unmarshal([]byte(`{
+		"data":[
+			{"id":"thr_1","status":{"type":"idle"}},
+			{"id":"thr_2","status":{"type":"running"}}
+		],
+		"nextCursor":"cursor_2"
+	}`), &threadListResult); err != nil {
+		t.Fatalf("unmarshal thread list result: %v", err)
+	}
+	if len(threadListResult.Data) != 2 || threadListResult.Data[1].ID != "thr_2" || threadListResult.NextCursor == nil || *threadListResult.NextCursor != "cursor_2" {
+		t.Fatalf("unexpected thread list result: %#v", threadListResult)
 	}
 }
 
