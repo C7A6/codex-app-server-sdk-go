@@ -240,6 +240,14 @@ func (c *Client) ForkThread(ctx context.Context, params ThreadForkParams) (*Thre
 	return result, nil
 }
 
+func (c *Client) ReadThread(ctx context.Context, params ThreadReadParams) (*ThreadReadResult, error) {
+	result := &ThreadReadResult{}
+	if err := c.Call(ctx, "thread/read", params, result); err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
 func (c *Client) Close() error {
 	c.mu.Lock()
 	if c.closed {

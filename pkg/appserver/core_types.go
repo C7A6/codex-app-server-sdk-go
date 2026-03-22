@@ -169,3 +169,12 @@ type ThreadForkParams struct {
 }
 
 type ThreadForkResult = ThreadStartResult
+
+type ThreadReadParams struct {
+	ThreadID     string `json:"threadId"`
+	IncludeTurns bool   `json:"includeTurns,omitempty"`
+}
+
+type ThreadReadResult struct {
+	Thread Thread `json:"thread"`
+}
