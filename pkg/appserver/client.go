@@ -320,6 +320,14 @@ func (c *Client) StartTurn(ctx context.Context, params TurnStartParams) (*TurnSt
 	return result, nil
 }
 
+func (c *Client) SteerTurn(ctx context.Context, params TurnSteerParams) (*TurnSteerResult, error) {
+	result := &TurnSteerResult{}
+	if err := c.Call(ctx, "turn/steer", params, result); err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
 func (c *Client) Close() error {
 	c.mu.Lock()
 	if c.closed {

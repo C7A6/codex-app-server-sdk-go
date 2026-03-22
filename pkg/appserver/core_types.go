@@ -301,3 +301,13 @@ type TurnStartParams struct {
 type TurnStartResult struct {
 	Turn Turn `json:"turn"`
 }
+
+type TurnSteerParams struct {
+	ThreadID       string               `json:"threadId"`
+	ExpectedTurnID string               `json:"expectedTurnId"`
+	Input          []TurnStartInputItem `json:"input"`
+}
+
+type TurnSteerResult struct {
+	TurnID string `json:"turnId"`
+}
