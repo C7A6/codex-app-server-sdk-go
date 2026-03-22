@@ -187,6 +187,23 @@ func TestGoldenThreadAndTurnFixtures(t *testing.T) {
 func TestGoldenTurnAndItemDeltaFixtures(t *testing.T) {
 	t.Parallel()
 
+	tokenUsageEvent, err := DecodeNotificationEvent(Notification{Method: MethodThreadTokenUsageUpdated, Params: json.RawMessage(`{
+		"threadId":"thr_123",
+		"turnId":"turn_456",
+		"tokenUsage":{
+			"last":{"cachedInputTokens":1,"inputTokens":2,"outputTokens":3,"reasoningOutputTokens":4,"totalTokens":10},
+			"modelContextWindow":128000,
+			"total":{"cachedInputTokens":5,"inputTokens":6,"outputTokens":7,"reasoningOutputTokens":8,"totalTokens":26}
+		}
+	}`)})
+	if err != nil {
+		t.Fatalf("DecodeNotificationEvent thread/tokenUsage/updated: %v", err)
+	}
+	tokenUsage, ok := tokenUsageEvent.(*ThreadTokenUsageUpdatedEvent)
+	if !ok || tokenUsage.TurnID != "turn_456" || tokenUsage.TokenUsage.Total.TotalTokens != 26 {
+		t.Fatalf("unexpected token usage event: %#v", tokenUsageEvent)
+	}
+
 	planEvent, err := DecodeNotificationEvent(Notification{Method: MethodTurnPlanUpdated, Params: json.RawMessage(`{
 		"turnId":"turn_456",
 		"explanation":"work plan",
@@ -366,8 +383,12 @@ func TestGoldenAuthAndAsyncFixtures(t *testing.T) {
 	if err != nil {
 		t.Fatalf("DecodeNotificationEvent account/rateLimits/updated: %v", err)
 	}
-	if _, ok := rateLimitsUpdated.(*AccountRateLimitsUpdatedEvent); !ok {
+	typedRateLimits, ok := rateLimitsUpdated.(*AccountRateLimitsUpdatedEvent)
+	if !ok {
 		t.Fatalf("unexpected rate limits updated event: %#v", rateLimitsUpdated)
+	}
+	if typedRateLimits.RateLimits.Primary == nil || typedRateLimits.RateLimits.Primary.UsedPercent != 31 {
+		t.Fatalf("unexpected typed rate limits event: %#v", typedRateLimits)
 	}
 
 	var appUpdated goldenAppListUpdatedEvent

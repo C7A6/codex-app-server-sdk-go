@@ -2471,12 +2471,130 @@ func TestRegisterNotificationHandlerCanDecodeTypedEvent(t *testing.T) {
 	}
 }
 
+func TestOnEventRegistersTypedHandler(t *testing.T) {
+	t.Parallel()
+
+	client := &Client{
+		notificationHandlers: make(map[string]map[uint64]NotificationHandler),
+		processExitHandlers:  make(map[uint64]ProcessExitHandler),
+	}
+
+	received := make(chan *ThreadStartedEvent, 1)
+	unregister, err := OnEvent(client, func(ctx context.Context, event *ThreadStartedEvent) {
+		received <- event
+	})
+	if err != nil {
+		t.Fatalf("OnEvent returned error: %v", err)
+	}
+	defer unregister()
+
+	dispatchTestNotification(t, client, MethodThreadStarted, `{"thread":{"id":"thr_123"}}`)
+
+	select {
+	case event := <-received:
+		if event.Thread.ID != "thr_123" {
+			t.Fatalf("unexpected event: %#v", event)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("timed out waiting for typed event")
+	}
+}
+
+func TestOnTurnCompletedDeliversTypedEvent(t *testing.T) {
+	t.Parallel()
+
+	client := &Client{
+		notificationHandlers: make(map[string]map[uint64]NotificationHandler),
+		processExitHandlers:  make(map[uint64]ProcessExitHandler),
+	}
+
+	received := make(chan *TurnCompletedEvent, 1)
+	unregister, err := client.OnTurnCompleted(func(ctx context.Context, event *TurnCompletedEvent) {
+		received <- event
+	})
+	if err != nil {
+		t.Fatalf("OnTurnCompleted returned error: %v", err)
+	}
+	defer unregister()
+
+	dispatchTestNotification(t, client, MethodTurnCompleted, `{"threadId":"thr_123","turn":{"id":"turn_456","status":"completed"}}`)
+
+	select {
+	case event := <-received:
+		if event.ThreadID != "thr_123" || event.Turn.ID != "turn_456" {
+			t.Fatalf("unexpected event: %#v", event)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("timed out waiting for turn completed event")
+	}
+}
+
+func TestOnItemDeltaReceivesAllDeltaFamilies(t *testing.T) {
+	t.Parallel()
+
+	client := &Client{
+		notificationHandlers: make(map[string]map[uint64]NotificationHandler),
+		processExitHandlers:  make(map[uint64]ProcessExitHandler),
+	}
+
+	received := make(chan string, 7)
+	unregister, err := client.OnItemDelta(func(ctx context.Context, event ItemDeltaEvent) {
+		received <- event.NotificationMethod()
+	})
+	if err != nil {
+		t.Fatalf("OnItemDelta returned error: %v", err)
+	}
+	defer unregister()
+
+	dispatchTestNotification(t, client, MethodItemAgentMessageDelta, `{"itemId":"item_1","delta":"a"}`)
+	dispatchTestNotification(t, client, MethodItemPlanDelta, `{"itemId":"item_1","delta":"b"}`)
+	dispatchTestNotification(t, client, MethodItemReasoningSummaryDelta, `{"itemId":"item_1","summaryIndex":0,"delta":"c","threadId":"thr","turnId":"turn"}`)
+	dispatchTestNotification(t, client, MethodItemReasoningPartAdded, `{"itemId":"item_1","summaryIndex":1,"threadId":"thr","turnId":"turn"}`)
+	dispatchTestNotification(t, client, MethodItemReasoningTextDelta, `{"itemId":"item_1","contentIndex":0,"delta":"d","threadId":"thr","turnId":"turn"}`)
+	dispatchTestNotification(t, client, MethodItemCommandOutputDelta, `{"itemId":"item_1","delta":"e","stream":"stdout"}`)
+	dispatchTestNotification(t, client, MethodItemFileChangeOutputDelta, `{"itemId":"item_1","delta":"f","threadId":"thr","turnId":"turn"}`)
+
+	want := map[string]bool{
+		MethodItemAgentMessageDelta:     false,
+		MethodItemPlanDelta:             false,
+		MethodItemReasoningSummaryDelta: false,
+		MethodItemReasoningPartAdded:    false,
+		MethodItemReasoningTextDelta:    false,
+		MethodItemCommandOutputDelta:    false,
+		MethodItemFileChangeOutputDelta: false,
+	}
+
+	deadline := time.After(time.Second)
+	for remaining := len(want); remaining > 0; {
+		select {
+		case method := <-received:
+			if _, ok := want[method]; ok && !want[method] {
+				want[method] = true
+				remaining--
+			}
+		case <-deadline:
+			t.Fatalf("timed out waiting for delta methods: %#v", want)
+		}
+	}
+}
+
 func requireCodex(t *testing.T) {
 	t.Helper()
 
 	if _, err := exec.LookPath("codex"); err != nil {
 		t.Skipf("codex not found: %v", err)
 	}
+}
+
+func dispatchTestNotification(t *testing.T, client *Client, method string, rawParams string) {
+	t.Helper()
+
+	params := json.RawMessage(rawParams)
+	client.dispatchNotification(context.Background(), &jsonrpc2.Request{
+		Notif:  true,
+		Method: method,
+		Params: &params,
+	})
 }
 
 func startUninitializedTestConn(t *testing.T) (*jsonrpc2.Conn, func()) {
