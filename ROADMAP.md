@@ -60,7 +60,7 @@
 - [x] `UnarchiveThread`: Why archived threads must be restorable into active storage. How call `thread/unarchive` and decode the restored thread object.
 - [x] `UnsubscribeThread`: Why clients may stop receiving turn and item events for a loaded thread. How call `thread/unsubscribe` and decode the unsubscribe result state.
 - [x] `CompactThread`: Why long conversations may need context compaction. How call `thread/compact/start` and rely on streamed turn and item notifications for progress.
-- [ ] `RollbackThread`: Why a client may need to drop recent turns from working context. How call `thread/rollback` with a rollback count and decode the updated thread.
+- [x] `RollbackThread`: Why a client may need to drop recent turns from working context. How call `thread/rollback` with a rollback count and decode the updated thread.
 
 ### Turn Lifecycle
 
