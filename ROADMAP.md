@@ -138,5 +138,5 @@ Reason: Interactive authentication, logout orchestration, and host-managed ChatG
 
 - [x] `DefineCoreTypes`: Why request and response payloads should be strongly typed across the SDK. How add shared Go structs for threads, turns, items, reviews, commands, and config payloads from the document.
 - [x] `DefineEventTypes`: Why notification payloads should not be handled as raw maps. How add typed event models keyed by method name for threads, turns, items, auth, and MCP flows.
-- [ ] `AddIntegrationTests`: Why transport, auth, and session behavior should be verified against the real `codex` binary. How keep real-binary integration tests for initialization, auth reads, process failure, and restart scenarios.
-- [ ] `AddGoldenProtocolTests`: Why stable payload encoding and decoding matters for SDK compatibility. How capture representative JSON-RPC request and response fixtures from the document and assert struct compatibility.
+- [x] `AddIntegrationTests`: Why transport, auth, and session behavior should be verified against the real `codex` binary. How keep real-binary integration tests for initialization, auth reads, process failure, and restart scenarios.
+- [x] `AddGoldenProtocolTests`: Why stable payload encoding and decoding matters for SDK compatibility. How capture representative JSON-RPC request and response fixtures from the document and assert struct compatibility.
