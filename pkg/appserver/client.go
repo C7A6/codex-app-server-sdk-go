@@ -376,6 +376,14 @@ func (c *Client) TerminateCommand(ctx context.Context, params CommandExecTermina
 	return result, nil
 }
 
+func (c *Client) ListSkills(ctx context.Context, params SkillsListParams) (*SkillsListResult, error) {
+	result := &SkillsListResult{}
+	if err := c.Call(ctx, "skills/list", params, result); err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
 func (c *Client) Close() error {
 	c.mu.Lock()
 	if c.closed {

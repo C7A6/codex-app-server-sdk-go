@@ -123,6 +123,65 @@ type ConfigReadResult struct {
 	Origins map[string]ConfigLayerMetadata `json:"origins"`
 }
 
+type SkillsListExtraRootsForCwd struct {
+	Cwd            string   `json:"cwd"`
+	ExtraUserRoots []string `json:"extraUserRoots"`
+}
+
+type SkillsListParams struct {
+	Cwds                 []string                     `json:"cwds,omitempty"`
+	ForceReload          bool                         `json:"forceReload,omitempty"`
+	PerCwdExtraUserRoots []SkillsListExtraRootsForCwd `json:"perCwdExtraUserRoots,omitempty"`
+}
+
+type SkillToolDependency struct {
+	Command     *string `json:"command,omitempty"`
+	Description *string `json:"description,omitempty"`
+	Transport   *string `json:"transport,omitempty"`
+	Type        string  `json:"type"`
+	URL         *string `json:"url,omitempty"`
+	Value       string  `json:"value"`
+}
+
+type SkillDependencies struct {
+	Tools []SkillToolDependency `json:"tools"`
+}
+
+type SkillInterface struct {
+	BrandColor       *string `json:"brandColor,omitempty"`
+	DefaultPrompt    *string `json:"defaultPrompt,omitempty"`
+	DisplayName      *string `json:"displayName,omitempty"`
+	IconLarge        *string `json:"iconLarge,omitempty"`
+	IconSmall        *string `json:"iconSmall,omitempty"`
+	ShortDescription *string `json:"shortDescription,omitempty"`
+}
+
+type SkillMetadata struct {
+	Dependencies     *SkillDependencies `json:"dependencies,omitempty"`
+	Description      string             `json:"description"`
+	Enabled          bool               `json:"enabled"`
+	Interface        *SkillInterface    `json:"interface,omitempty"`
+	Name             string             `json:"name"`
+	Path             string             `json:"path"`
+	Scope            string             `json:"scope"`
+	ShortDescription *string            `json:"shortDescription,omitempty"`
+}
+
+type SkillErrorInfo struct {
+	Message string `json:"message"`
+	Path    string `json:"path"`
+}
+
+type SkillsListEntry struct {
+	Cwd    string           `json:"cwd"`
+	Errors []SkillErrorInfo `json:"errors"`
+	Skills []SkillMetadata  `json:"skills"`
+}
+
+type SkillsListResult struct {
+	Data []SkillsListEntry `json:"data"`
+}
+
 type ModelListParams struct {
 	Cursor        *string `json:"cursor,omitempty"`
 	IncludeHidden *bool   `json:"includeHidden,omitempty"`
