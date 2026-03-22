@@ -1,3 +1,6 @@
-schema = 1
+schema = 3
 
 [mod]
+  [mod.'github.com/sourcegraph/jsonrpc2']
+    version = 'v0.2.1'
+    hash = 'sha256-ihQqx8FGcu7lgsXwQireaKUnv2OgXDXljZp0ohrCsVs='
