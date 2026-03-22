@@ -117,6 +117,11 @@ type ConfigLayer map[string]any
 
 type ConfigLayerMetadata map[string]any
 
+type ConfigReadParams struct {
+	Cwd           *string `json:"cwd,omitempty"`
+	IncludeLayers bool    `json:"includeLayers,omitempty"`
+}
+
 type ConfigReadResult struct {
 	Config  ConfigValueMap                 `json:"config"`
 	Layers  []ConfigLayer                  `json:"layers,omitempty"`
