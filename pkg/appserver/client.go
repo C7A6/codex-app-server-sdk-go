@@ -176,7 +176,7 @@ func StartStdio(ctx context.Context, opts StartOptions) (*Client, *InitializeRes
 func Initialize(ctx context.Context, conn *jsonrpc2.Conn, params InitializeParams) (*InitializeResult, error) {
 	result := &InitializeResult{}
 	if err := conn.Call(ctx, "initialize", params, result); err != nil {
-		return nil, err
+		return nil, wrapRPCError(err)
 	}
 	return result, nil
 }
@@ -701,14 +701,14 @@ func (c *Client) call(ctx context.Context, invoke func(*session) error) error {
 			if sess.done() {
 				return sess.processExitError()
 			}
-			return err
+			return wrapRPCError(err)
 		}
 
 		if !c.opts.restartEnabled() {
 			if sess.done() {
 				return sess.processExitError()
 			}
-			return err
+			return wrapRPCError(err)
 		}
 
 		c.invalidateSession(sess)
