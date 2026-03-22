@@ -118,21 +118,21 @@ Reason: Interactive authentication, logout orchestration, and host-managed ChatG
 
 ### Feedback, Windows, And Approvals
 
-- [ ] `UploadFeedback`: Why clients may need to submit bug reports and conversation feedback. How call `feedback/upload` with classification, reason, logs, and extra attachments.
-- [ ] `StartWindowsSandboxSetup`: Why Windows clients may need elevated or unelevated setup flows. How call `windowsSandbox/setupStart` and follow completion events asynchronously.
-- [ ] `RequestUserInput`: Why experimental tool flows may ask the host for guided user input. How call `tool/requestUserInput` with one to three questions and decode the selected answers.
+- [x] `UploadFeedback`: Why clients may need to submit bug reports and conversation feedback. How call `feedback/upload` with classification, reason, logs, and extra attachments.
+- [x] `StartWindowsSandboxSetup`: Why Windows clients may need elevated or unelevated setup flows. How call `windowsSandbox/setupStart` and follow completion events asynchronously.
+- [x] `RequestUserInput`: Why experimental tool flows may ask the host for guided user input. How handle the server request `item/tool/requestUserInput` with typed questions and return selected answers.
 
 ### Notifications And Streaming Events
 
 - [x] `RegisterNotificationHandler`: Why the protocol is bidirectional and event-heavy. How expose a dispatcher that routes server notifications by method name to typed handlers.
-- [ ] `HandleThreadEvents`: Why thread creation, archive, unarchive, close, and status changes are server-driven. How decode `thread/started`, `thread/archived`, `thread/unarchived`, `thread/closed`, and `thread/status/changed`.
-- [ ] `HandleTurnEvents`: Why turn progress must be streamed to clients in real time. How decode `turn/started`, `turn/completed`, `turn/diff/updated`, `turn/plan/updated`, and `thread/tokenUsage/updated`.
-- [ ] `HandleItemEvents`: Why all granular work units arrive through item notifications. How decode `item/started` and `item/completed` into typed item unions.
-- [ ] `HandleItemDeltas`: Why large text and command outputs are streamed incrementally. How decode item delta notifications such as agent text, reasoning deltas, command output, and file change output.
-- [ ] `HandleAccountNotifications`: Why auth mode and rate-limit changes may happen independently of direct requests. How decode `account/login/completed`, `account/updated`, and `account/rateLimits/updated`.
-- [ ] `HandleMCPOAuthCompletion`: Why OAuth login flows finish asynchronously. How decode `mcpServer/oauthLogin/completed` and correlate the result with the initiating request.
-- [ ] `HandleWindowsSandboxCompletion`: Why Windows sandbox setup finishes via notification rather than inline response. How decode `windowsSandbox/setupCompleted` into a typed event.
-- [ ] `HandleFuzzyFileSearchEvents`: Why experimental file-search sessions publish updates asynchronously. How decode `fuzzyFileSearch/sessionUpdated` and `fuzzyFileSearch/sessionCompleted`.
+- [x] `HandleThreadEvents`: Why thread creation, archive, unarchive, close, and status changes are server-driven. How decode `thread/started`, `thread/archived`, `thread/unarchived`, `thread/closed`, and `thread/status/changed`.
+- [x] `HandleTurnEvents`: Why turn progress must be streamed to clients in real time. How decode `turn/started`, `turn/completed`, `turn/diff/updated`, `turn/plan/updated`, and `thread/tokenUsage/updated`.
+- [x] `HandleItemEvents`: Why all granular work units arrive through item notifications. How decode `item/started` and `item/completed` into typed item unions.
+- [x] `HandleItemDeltas`: Why large text and command outputs are streamed incrementally. How decode item delta notifications such as agent text, reasoning deltas, command output, and file change output.
+- [x] `HandleAccountNotifications`: Why auth mode and rate-limit changes may happen independently of direct requests. How decode `account/login/completed`, `account/updated`, and `account/rateLimits/updated`.
+- [x] `HandleMCPOAuthCompletion`: Why OAuth login flows finish asynchronously. How decode `mcpServer/oauthLogin/completed` and correlate the result with the initiating request.
+- [x] `HandleWindowsSandboxCompletion`: Why Windows sandbox setup finishes via notification rather than inline response. How decode `windowsSandbox/setupCompleted` into a typed event.
+- [x] `HandleFuzzyFileSearchEvents`: Why experimental file-search sessions publish updates asynchronously. How decode `fuzzyFileSearch/sessionUpdated` and `fuzzyFileSearch/sessionCompleted`.
 
 ### Shared Type System And Test Coverage
 
