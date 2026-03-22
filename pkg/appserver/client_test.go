@@ -1020,6 +1020,48 @@ func TestListAppsWithRealCodex(t *testing.T) {
 	}
 }
 
+func TestStartMCPOAuthLoginWithRealCodex(t *testing.T) {
+	requireCodex(t)
+
+	client, _ := startTestClient(t, false)
+	defer func() {
+		_ = client.Close()
+	}()
+
+	var statusResult struct {
+		Data []struct {
+			AuthStatus string `json:"authStatus"`
+			Name       string `json:"name"`
+		} `json:"data"`
+	}
+	if err := client.Call(context.Background(), "mcpServerStatus/list", map[string]any{}, &statusResult); err != nil {
+		t.Fatalf("mcpServerStatus/list returned error: %v", err)
+	}
+
+	var serverName string
+	for _, status := range statusResult.Data {
+		if status.AuthStatus == "notLoggedIn" || status.AuthStatus == "oAuth" {
+			serverName = status.Name
+			break
+		}
+	}
+	if serverName == "" {
+		t.Skip("no oauth-capable MCP server available in current environment")
+	}
+
+	timeoutSecs := int64(1)
+	result, err := client.StartMCPOAuthLogin(context.Background(), MCPOAuthLoginParams{
+		Name:        serverName,
+		TimeoutSecs: &timeoutSecs,
+	})
+	if err != nil {
+		t.Fatalf("StartMCPOAuthLogin returned error: %v", err)
+	}
+	if result == nil || result.AuthorizationURL == "" {
+		t.Fatalf("expected authorization URL: %#v", result)
+	}
+}
+
 func TestProcessExitReturnsErrorWhenRestartDisabled(t *testing.T) {
 	requireCodex(t)
 
@@ -1486,6 +1528,16 @@ func TestCoreTypeDecoding(t *testing.T) {
 	}
 	if len(appsListResult.Data) != 1 || appsListResult.Data[0].ID != "app_1" || appsListResult.NextCursor == nil || *appsListResult.NextCursor != "cursor_2" {
 		t.Fatalf("unexpected apps list result: %#v", appsListResult)
+	}
+
+	var mcpOAuthLoginResult MCPOAuthLoginResult
+	if err := json.Unmarshal([]byte(`{
+		"authorizationUrl":"https://example.com/oauth/authorize?state=demo"
+	}`), &mcpOAuthLoginResult); err != nil {
+		t.Fatalf("unmarshal mcp oauth login result: %v", err)
+	}
+	if mcpOAuthLoginResult.AuthorizationURL == "" {
+		t.Fatalf("unexpected mcp oauth login result: %#v", mcpOAuthLoginResult)
 	}
 }
 
