@@ -240,3 +240,11 @@ type ThreadArchiveParams struct {
 }
 
 type ThreadArchiveResult struct{}
+
+type ThreadUnarchiveParams struct {
+	ThreadID string `json:"threadId"`
+}
+
+type ThreadUnarchiveResult struct {
+	Thread Thread `json:"thread"`
+}

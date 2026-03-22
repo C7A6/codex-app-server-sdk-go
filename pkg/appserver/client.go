@@ -280,6 +280,14 @@ func (c *Client) ArchiveThread(ctx context.Context, params ThreadArchiveParams) 
 	return result, nil
 }
 
+func (c *Client) UnarchiveThread(ctx context.Context, params ThreadUnarchiveParams) (*ThreadUnarchiveResult, error) {
+	result := &ThreadUnarchiveResult{}
+	if err := c.Call(ctx, "thread/unarchive", params, result); err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
 func (c *Client) Close() error {
 	c.mu.Lock()
 	if c.closed {
