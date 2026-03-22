@@ -82,7 +82,7 @@
 - [x] `WriteSkillsConfig`: Why users need SDK support for enabling or disabling skills. How call `skills/config/write` with path-based enablement changes.
 - [x] `ListPlugins`: Why clients may need marketplace and auth policy metadata for plugins. How call `plugin/list` and decode marketplace and plugin state data.
 - [x] `ReadPlugin`: Why callers may need detailed metadata for one plugin. How call `plugin/read` with marketplace path and plugin name and decode bundled assets.
-- [ ] `ListApps`: Why connector UIs need a typed catalog of available apps. How call `app/list` with pagination and decode accessibility and enabled fields.
+- [x] `ListApps`: Why connector UIs need a typed catalog of available apps. How call `app/list` with pagination and decode accessibility and enabled fields.
 - [ ] `StartMCPOAuthLogin`: Why MCP servers may require an OAuth bootstrap flow. How call `mcpServer/oauth/login` and return the authorization URL and login context.
 - [ ] `ReloadMCPServerConfig`: Why runtime MCP configuration may change on disk. How call `config/mcpServer/reload` and surface a simple success result.
 - [ ] `ListMCPServerStatus`: Why operators need visibility into MCP auth state and exposed tools. How call `mcpServerStatus/list` with cursor and limit support.
