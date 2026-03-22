@@ -135,3 +135,20 @@ type ThreadStartResult struct {
 	ServiceTier       *string         `json:"serviceTier,omitempty"`
 	Thread            Thread          `json:"thread"`
 }
+
+type ThreadResumeParams struct {
+	ThreadID              string         `json:"threadId"`
+	ApprovalPolicy        any            `json:"approvalPolicy,omitempty"`
+	ApprovalsReviewer     *string        `json:"approvalsReviewer,omitempty"`
+	BaseInstructions      *string        `json:"baseInstructions,omitempty"`
+	Config                map[string]any `json:"config,omitempty"`
+	Cwd                   *string        `json:"cwd,omitempty"`
+	DeveloperInstructions *string        `json:"developerInstructions,omitempty"`
+	Sandbox               *string        `json:"sandbox,omitempty"`
+	Model                 *string        `json:"model,omitempty"`
+	ModelProvider         *string        `json:"modelProvider,omitempty"`
+	ServiceTier           *string        `json:"serviceTier,omitempty"`
+	Personality           *string        `json:"personality,omitempty"`
+}
+
+type ThreadResumeResult = ThreadStartResult
