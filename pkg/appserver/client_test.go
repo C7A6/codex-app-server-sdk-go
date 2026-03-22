@@ -1079,6 +1079,36 @@ func TestReloadMCPServerConfigWithRealCodex(t *testing.T) {
 	}
 }
 
+func TestListMCPServerStatusWithRealCodex(t *testing.T) {
+	requireCodex(t)
+
+	client, _ := startTestClient(t, false)
+	defer func() {
+		_ = client.Close()
+	}()
+
+	limit := uint32(10)
+	result, err := client.ListMCPServerStatus(context.Background(), MCPServerStatusListParams{
+		Limit: &limit,
+	})
+	if err != nil {
+		t.Fatalf("ListMCPServerStatus returned error: %v", err)
+	}
+	if result == nil {
+		t.Fatal("expected MCP server status result")
+	}
+	for _, server := range result.Data {
+		if server.Name == "" {
+			t.Fatalf("expected MCP server name: %#v", server)
+		}
+		switch server.AuthStatus {
+		case MCPAuthStatusUnsupported, MCPAuthStatusNotLoggedIn, MCPAuthStatusBearerToken, MCPAuthStatusOAuth:
+		default:
+			t.Fatalf("unexpected MCP auth status: %#v", server)
+		}
+	}
+}
+
 func TestProcessExitReturnsErrorWhenRestartDisabled(t *testing.T) {
 	requireCodex(t)
 
@@ -1560,6 +1590,28 @@ func TestCoreTypeDecoding(t *testing.T) {
 	var mcpServerRefreshResult MCPServerRefreshResult
 	if err := json.Unmarshal([]byte(`{}`), &mcpServerRefreshResult); err != nil {
 		t.Fatalf("unmarshal mcp server refresh result: %v", err)
+	}
+
+	var mcpServerStatusListResult MCPServerStatusListResult
+	if err := json.Unmarshal([]byte(`{
+		"data":[{
+			"name":"demo-server",
+			"authStatus":"notLoggedIn",
+			"resourceTemplates":[{"name":"repo","uriTemplate":"repo://{id}"}],
+			"resources":[{"name":"readme","uri":"file:///README.md","mimeType":"text/markdown"}],
+			"tools":{
+				"search":{
+					"name":"search",
+					"inputSchema":{"type":"object"}
+				}
+			}
+		}],
+		"nextCursor":"cursor_2"
+	}`), &mcpServerStatusListResult); err != nil {
+		t.Fatalf("unmarshal mcp server status list result: %v", err)
+	}
+	if len(mcpServerStatusListResult.Data) != 1 || mcpServerStatusListResult.Data[0].Name != "demo-server" || mcpServerStatusListResult.Data[0].AuthStatus != MCPAuthStatusNotLoggedIn {
+		t.Fatalf("unexpected mcp server status result: %#v", mcpServerStatusListResult)
 	}
 }
 
