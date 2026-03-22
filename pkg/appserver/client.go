@@ -216,6 +216,14 @@ func (c *Client) ListModels(ctx context.Context, params ModelListParams) (*Model
 	return result, nil
 }
 
+func (c *Client) StartThread(ctx context.Context, params ThreadStartParams) (*ThreadStartResult, error) {
+	result := &ThreadStartResult{}
+	if err := c.Call(ctx, "thread/start", params, result); err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
 func (c *Client) Close() error {
 	c.mu.Lock()
 	if c.closed {

@@ -107,3 +107,31 @@ type ModelListResult struct {
 	Data       []ModelInfo `json:"data"`
 	NextCursor *string     `json:"nextCursor,omitempty"`
 }
+
+type ThreadStartParams struct {
+	ApprovalPolicy        any            `json:"approvalPolicy,omitempty"`
+	ApprovalsReviewer     *string        `json:"approvalsReviewer,omitempty"`
+	BaseInstructions      *string        `json:"baseInstructions,omitempty"`
+	Config                map[string]any `json:"config,omitempty"`
+	Cwd                   *string        `json:"cwd,omitempty"`
+	DeveloperInstructions *string        `json:"developerInstructions,omitempty"`
+	ServiceTier           *string        `json:"serviceTier,omitempty"`
+	Ephemeral             *bool          `json:"ephemeral,omitempty"`
+	ServiceName           *string        `json:"serviceName,omitempty"`
+	Personality           *string        `json:"personality,omitempty"`
+	Model                 *string        `json:"model,omitempty"`
+	ModelProvider         *string        `json:"modelProvider,omitempty"`
+	Sandbox               *string        `json:"sandbox,omitempty"`
+}
+
+type ThreadStartResult struct {
+	ApprovalPolicy    json.RawMessage `json:"approvalPolicy"`
+	ApprovalsReviewer string          `json:"approvalsReviewer"`
+	Cwd               string          `json:"cwd"`
+	Model             string          `json:"model"`
+	ModelProvider     string          `json:"modelProvider"`
+	ReasoningEffort   *string         `json:"reasoningEffort,omitempty"`
+	Sandbox           json.RawMessage `json:"sandbox"`
+	ServiceTier       *string         `json:"serviceTier,omitempty"`
+	Thread            Thread          `json:"thread"`
+}
